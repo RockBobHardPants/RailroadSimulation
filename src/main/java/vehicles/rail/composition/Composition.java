@@ -8,19 +8,17 @@ import vehicles.rail.wagon.Wagon;
 
 import java.util.List;
 
-public class Composition implements Movable {
-    private List<Locomotive> locomotives;
-    private List<Wagon> wagons;
-    private Station destinationStation;
+public class Composition extends Thread {
+    private final Locomotive frontLocomotive;
+    private final Locomotive rearLocomotive;
+    private final List<Wagon> wagons;
+    private final Station destinationStation;
 
-    public Composition(List<Locomotive> locomotives, List<Wagon> wagons, Station destinationStation) {
-        this.locomotives = locomotives;
+    public Composition(Locomotive frontLocomotive, Locomotive rearLocomotive, List<Wagon> wagons, Station destinationStation) {
+        this.frontLocomotive = frontLocomotive;
+        this.rearLocomotive = rearLocomotive;
         this.wagons = wagons;
         this.destinationStation = destinationStation;
     }
 
-    @Override
-    public void go(Field currentField) {
-
-    }
 }

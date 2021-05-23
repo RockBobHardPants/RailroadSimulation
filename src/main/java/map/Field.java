@@ -1,13 +1,24 @@
 package map;
 
+import javafx.scene.image.Image;
+import vehicles.rail.locomotive.LocomotiveDrive;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.nio.file.Paths;
 import java.util.Objects;
 
 public class Field {
+    public static final String IMAGES = "images";
+    private Image fieldImage;
     private final FieldType fieldType;
     private boolean hasElectricity;
     private final Coordinates coordinates;
     private final int fieldRotation;
-    private String stationId;
+    private Field nextField;
+    private Field previousField;
+
 
     public Field(){
         fieldType = null;
@@ -21,14 +32,37 @@ public class Field {
         this.hasElectricity = hasElectricity;
         this.fieldRotation = fieldRotation;
         coordinates = new Coordinates(row, column);
+        setFieldImage();
     }
 
-    public Field(int row, int column, String stationId){
-        this.fieldType = FieldType.STATION;
-        this.hasElectricity = true;
-        this.fieldRotation = 0;
-        coordinates = new Coordinates(row, column);
-        this.stationId = stationId;
+    private void setFieldImage() {
+        try {
+            if (this.fieldType.equals(FieldType.STATION)) {
+                fieldImage = new Image(new FileInputStream(Paths.get("").toAbsolutePath() + File.separator + IMAGES + File.separator + "stationTile1.png"));
+            } else if (this.fieldType.equals(FieldType.ROAD)){
+                fieldImage = new Image(new FileInputStream(Paths.get("").toAbsolutePath() + File.separator + IMAGES + File.separator + "roadTile.png"));
+            } else if (this.fieldType.equals(FieldType.RAILROAD)){
+                fieldImage = new Image(new FileInputStream(Paths.get("").toAbsolutePath() + File.separator + IMAGES + File.separator + "railVertical.png"));
+            } else if (th)
+        } catch (FileNotFoundException fileNotFoundException) {
+            fileNotFoundException.printStackTrace();
+        }
+    }
+
+    public Field getNextField() {
+        return nextField;
+    }
+
+    public void setNextField(Field nextField) {
+        this.nextField = nextField;
+    }
+
+    public Field getPreviousField() {
+        return previousField;
+    }
+
+    public void setPreviousField(Field previousField) {
+        this.previousField = previousField;
     }
 
     public record Coordinates(int row, int column) {
@@ -46,6 +80,13 @@ public class Field {
                     ", column=" + column +
                     ']';
         }
+    }
+
+    public Field getFieldByCoordinates(int row, int column){
+        if(coordinates.getRow() == row && coordinates.getColumn() == column){
+            return this;
+        }
+        return null;
     }
 
     public FieldType getFieldType() {
