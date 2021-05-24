@@ -2,6 +2,15 @@ package util;
 
 import map.Field;
 import map.FieldType;
+import map.Segment;
+import map.Station;
+
+import java.io.*;
+import java.nio.file.Paths;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.stream.Collectors;
 
 public class Util {
     private static Field[][] map;
@@ -29,6 +38,28 @@ public class Util {
         }
         return currentField;
     }
+
+    public static List<Segment> readSegments(){
+        List<Segment> segmentList = new ArrayList<>();
+        try (var bufferedReader = new BufferedReader(new FileReader(Paths.get("").toAbsolutePath()
+                                                                    + File.separator + "segments.txt"))) {
+            String line;
+            while ((line = bufferedReader.readLine()) != null) {
+                String[] splits = line.split(" # ");
+                List<Field> fieldList = Arrays.stream(splits[1].split("],\\[")).map(s -> {
+                    var column = Integer.parseInt(s.split(",")[0].replace("[", ""));
+                    var row = Integer.parseInt(s.split(",")[1].replace("]", ""));
+                    return map[column][row];
+                }).collect(Collectors.toList());
+                segmentList.add(new Segment(splits[0], fieldList));
+            }
+        } catch (IOException fileNotFoundException) {
+            fileNotFoundException.printStackTrace();
+        }
+        return segmentList;
+    }
+
+
 
     public static void setMap(Field[][] map) {
         Util.map = map;

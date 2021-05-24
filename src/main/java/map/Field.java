@@ -43,7 +43,7 @@ public class Field {
                 fieldImage = new Image(new FileInputStream(Paths.get("").toAbsolutePath() + File.separator + IMAGES + File.separator + "roadTile.png"));
             } else if (this.fieldType.equals(FieldType.RAILROAD)){
                 fieldImage = new Image(new FileInputStream(Paths.get("").toAbsolutePath() + File.separator + IMAGES + File.separator + "railVertical.png"));
-            } else if (th)
+            }
         } catch (FileNotFoundException fileNotFoundException) {
             fileNotFoundException.printStackTrace();
         }

@@ -1,6 +1,6 @@
 package vehicles.rail.wagon;
 
-public class Wagon {
+public abstract class Wagon {
     protected String label;
     protected Double length;
 

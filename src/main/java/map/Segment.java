@@ -5,6 +5,7 @@ import java.util.List;
 public class Segment {
     private final String id;
     private final List<Field> path;
+    private boolean vehicleOnSegment;
 
     public Segment(String id, List<Field> path) {
         this.id = id;
@@ -17,5 +18,18 @@ public class Segment {
 
     public String getId() {
         return id;
+    }
+
+    public boolean isVehicleOnSegment() {
+        return vehicleOnSegment;
+    }
+
+    public void setVehicleOnSegment(boolean vehicleOnSegment) {
+        this.vehicleOnSegment = vehicleOnSegment;
+    }
+
+    @Override
+    public String toString() {
+        return "Segment" + id;
     }
 }

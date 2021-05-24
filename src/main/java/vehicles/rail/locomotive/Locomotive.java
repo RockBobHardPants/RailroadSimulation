@@ -1,11 +1,9 @@
 package vehicles.rail.locomotive;
 
 import MovableInterface.Movable;
-import com.sun.tools.javac.Main;
-import controllers.MainController;
 import javafx.scene.image.Image;
-import javafx.scene.image.ImageView;
 import map.Field;
+import map.FieldType;
 import map.Station;
 import util.Util;
 
@@ -14,7 +12,6 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.nio.file.Paths;
 
-import static java.lang.Thread.sleep;
 
 public class Locomotive extends Thread implements Movable {
     public static final String IMAGES = "images";
@@ -23,18 +20,21 @@ public class Locomotive extends Thread implements Movable {
     private final Double power;
     private final String label;
     private final Station destinationStation;
+    private final Station departureStation;
     private Field currentField;
     private Field previousField;
     private Image locomotiveImage;
-    private boolean isFinished;
+    private boolean finished;
+    private boolean updated;
 
-    public Locomotive(LocomotiveDrive locomotiveDrive, LocomotiveType locomotiveType, Double power, String label, Station destinationStation) {
+    public Locomotive(LocomotiveDrive locomotiveDrive, LocomotiveType locomotiveType, Double power, String label, Station destinationStation, Station departureStatoin) {
         this.locomotiveDrive = locomotiveDrive;
         this.locomotiveType = locomotiveType;
         this.power = power;
         this.label = label;
         this.destinationStation = destinationStation;
-        isFinished = false;
+        this.departureStation = departureStatoin;
+        finished = false;
         setLocomotiveImage();
     }
 
@@ -61,20 +61,35 @@ public class Locomotive extends Thread implements Movable {
         previousField = null;
     }
 
+    public Field getPreviousField() {
+        return previousField;
+    }
+
     public void move(){
         var tempField = currentField;
         currentField = Util.getNextField(currentField, previousField);
         previousField = tempField;
+        updated = true;
+    }
+
+    public boolean checkStationField(){
+        return currentField.getFieldType().equals(FieldType.STATION);
     }
 
     @Override
     public void run() {
-        while (!isFinished) {
+        while (!finished) {
             synchronized (this) {
                 move();
+                if(checkStationField()){
+                    try {
+                        sleep(3000);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
+                }
                 checkIsFinished();
-                notifyAll();
-                go(currentField, locomotiveImage);
+                System.out.println(currentField.getCoordinates().getRow() + " , " + currentField.getCoordinates().getColumn());
                 try {
                     sleep(1000);
                 } catch (InterruptedException e) {
@@ -84,9 +99,9 @@ public class Locomotive extends Thread implements Movable {
         }
     }
 
-    private void checkIsFinished() {
+    public void checkIsFinished() {
         if(destinationStation.getStationFields().stream().anyMatch(stationField -> stationField.equals(currentField))){
-            isFinished = true;
+            finished = true;
         }
     }
 
@@ -110,5 +125,21 @@ public class Locomotive extends Thread implements Movable {
     public void go(Field currentField, Image image) {
         this.currentField = currentField;
         image = locomotiveImage;
+    }
+
+    public boolean isUpdated() {
+        return updated;
+    }
+
+    public void setUpdated(boolean updated) {
+        this.updated = updated;
+    }
+
+    public boolean isFinished() {
+        return finished;
+    }
+
+    public void setFinished(boolean finished) {
+        this.finished = finished;
     }
 }

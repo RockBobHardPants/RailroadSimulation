@@ -13,6 +13,10 @@ public class Station{
         stationFields = new ArrayList<>(4);
     }
 
+//    public Field getDepartureField(Station destinationStation){
+//
+//    }
+
     public List<Field> getStationFields() {
         return stationFields;
     }
@@ -31,8 +35,7 @@ public class Station{
     public String toString() {
         return "Station{" +
                 "stationId='" + stationId + '\'' +
-                ", stationFields=" + stationFields +
-                '}';
+                ", stationSegments=" + stationSegments;
     }
 
     public List<Segment> getStationSegments() {

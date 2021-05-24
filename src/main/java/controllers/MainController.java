@@ -1,9 +1,7 @@
 package controllers;
 
-import MovableInterface.Movable;
 import javafx.application.Platform;
 import javafx.collections.ObservableList;
-import javafx.event.Event;
 import javafx.fxml.FXML;
 import javafx.geometry.Pos;
 import javafx.scene.Node;
@@ -17,17 +15,13 @@ import map.FieldType;
 import map.Segment;
 import map.Station;
 import util.Util;
-import vehicles.rail.composition.Composition;
 import vehicles.rail.locomotive.Locomotive;
 import vehicles.rail.locomotive.LocomotiveDrive;
 import vehicles.rail.locomotive.LocomotiveType;
 
 import java.io.*;
 import java.nio.file.Paths;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Random;
+import java.util.*;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import java.util.regex.MatchResult;
@@ -70,21 +64,29 @@ public class MainController {
         return map;
     }
 
-    public void renderItem(Field field, ImageView imageView){
+    public void renderItem(Field currentField, Field previousField,ImageView imageView){
         ObservableList<Node> nodes = gridPane.getChildren();
+        StackPane currentNode = null;
+        StackPane previousNode = null;
         for(Node node : nodes){
-            if(GridPane.getRowIndex(node) == field.getCoordinates().getRow() &&
-                    GridPane.getColumnIndex(node) == field.getCoordinates().getColumn()){
-                var stackPane = (StackPane) node;
-                stackPane.setAlignment(Pos.CENTER);
-                imageView.setRotate(imageView.getRotate() + field.getFieldRotation());
-                stackPane.getChildren().add(imageView);
-                Platform.runLater(() -> {
-                    gridPane.getChildren().remove(node);
-                    gridPane.add(stackPane, field.getCoordinates().getColumn(), field.getCoordinates().getRow());
-                });
+            if(GridPane.getRowIndex(node) == currentField.getCoordinates().getRow() &&
+                    GridPane.getColumnIndex(node) == currentField.getCoordinates().getColumn()){
+                currentNode = (StackPane) node;
+            } else if(GridPane.getRowIndex(node) == previousField.getCoordinates().getRow() &&
+                    GridPane.getColumnIndex(node) == previousField.getCoordinates().getColumn()){
+                previousNode = (StackPane) node;
             }
         }
+        var currentNodeFinal = currentNode;
+        var previousNodeFinal = previousNode;
+        Platform.runLater(() -> {
+            imageView.setRotate(imageView.getRotate() + currentField.getFieldRotation());
+            currentNodeFinal.setAlignment(Pos.CENTER);
+            previousNodeFinal.setAlignment(Pos.CENTER);
+//            previousNodeFinal.getChildren().remove(1);
+            currentNodeFinal.getChildren().add(1,imageView);
+            System.out.println(currentNodeFinal);
+        });
     }
 
 //    private void readSegments(){
@@ -101,7 +103,7 @@ public class MainController {
 //    }
 
     private void spawnTrain() {
-        locomotive = new Locomotive(LocomotiveDrive.DIESEL, LocomotiveType.MANEUVER, 50.0, "A", stations.stream().filter(station -> station.getStationId().equals("C")).findFirst().get());
+        locomotive = new Locomotive(LocomotiveDrive.DIESEL, LocomotiveType.MANEUVER, 50.0, "A", stations.stream().filter(station -> station.getStationId().equals("C")).findFirst().get(), stations.stream().filter(station -> station.getStationId().equals("A")).findFirst().get());
         locomotives = new ArrayList<>();
 //        Optional<Field> initialField = fieldsMap.stream().filter(field -> field.getFieldType().equals(FieldType.RAILROAD)).findAny();
 //        List<Field> listOfRailroadFields = fieldsMap.stream().filter(field -> field.getFieldType().equals(FieldType.RAILROAD)).collect(Collectors.toList());
@@ -126,61 +128,9 @@ public class MainController {
         }
     }
 
-//    private void findPath(Field startingField, String segmentName) {
-//        List<Field> pathFields = new ArrayList<>();
-//        var currentField = startingField;
-//        var isPathComplete = false;
-//        boolean visited[][] = new boolean[30][30];
-//        int row;
-//        int column;
-//        while (!isPathComplete) {
-//            row = currentField.getCoordinates().getRow();
-//            column = currentField.getCoordinates().getColumn();
-//            if (fieldMatrix[row + 1][column].getFieldType().equals(FieldType.RAILROAD) && !visited[row + 1][column]) {
-//                currentField = fieldMatrix[row + 1][column];
-//                pathFields.add(currentField);
-//                visited[row + 1][column] = true;
-//            } else if (fieldMatrix[row - 1][column].getFieldType().equals(FieldType.RAILROAD) && !visited[row - 1][column]) {
-//                currentField = fieldMatrix[row - 1][column];
-//                pathFields.add(currentField);
-//                visited[row - 1][column] = true;
-//            } else if (fieldMatrix[row][column + 1].getFieldType().equals(FieldType.RAILROAD) && !visited[row][column + 1]) {
-//                currentField = fieldMatrix[row][column + 1];
-//                pathFields.add(currentField);
-//                visited[row][column + 1] = true;
-//            } else if (fieldMatrix[row][column - 1].getFieldType().equals(FieldType.RAILROAD) && !visited[row][column - 1]) {
-//                currentField = fieldMatrix[row][column - 1];
-//                pathFields.add(currentField);
-//                visited[row][column - 1] = true;
-//            } else if (fieldMatrix[row + 1][column].getFieldType().equals(FieldType.STATION) ||
-//                       fieldMatrix[row - 1][column].getFieldType().equals(FieldType.STATION) ||
-//                       fieldMatrix[row][column + 1].getFieldType().equals(FieldType.STATION) ||
-//                       fieldMatrix[row][column - 1].getFieldType().equals(FieldType.STATION)){
-//                isPathComplete = true;
-//            }
-//        }
-//        segments.add(new Segment(segmentName, pathFields));
-//    }
-//
-//    private void initializeStationSegments(Station station){
-//        List<Field> railroadFields = new ArrayList<>();
-//        int row;
-//        int column;
-//        for (Field stationField : station.getStationFields()) {
-//            row = stationField.getCoordinates().getRow();
-//            column = stationField.getCoordinates().getColumn();
-//            if(fieldMatrix[row + 1][column].getFieldType().equals(FieldType.RAILROAD)){
-//                railroadFields.add(fieldMatrix[row + 1][column]);
-//            } else if(fieldMatrix[row - 1][column].getFieldType().equals(FieldType.RAILROAD)){
-//                railroadFields.add(fieldMatrix[row - 1][column]);
-//            } else if(fieldMatrix[row][column + 1].getFieldType().equals(FieldType.RAILROAD)){
-//                railroadFields.add(fieldMatrix[row][column + 1]);
-//            } else if(fieldMatrix[row][column - 1].getFieldType().equals(FieldType.RAILROAD)){
-//                railroadFields.add(fieldMatrix[row][column - 1]);
-//            }
-//        }
-//        railroadFields.forEach(field -> findPath(field, station.getStationId()));
-//    }
+    //TODO prebaciti inicijalizaciju u Util klasu, da vraća samo fieldMatrix po čemu će se iscrtati gridPane;
+    //TODO Napraviti mapu za svaku stanicu tako da se zna koji izlaz iz stanice je za koji smjer i učitaj ga u svaku stanicu
+    //TODO Napravi sinhronizaciju nad učitanim segmentima 
 
     public void initialize() throws FileNotFoundException {
         button.setOnMouseClicked(mouseEvent -> {
@@ -305,28 +255,33 @@ public class MainController {
             }
         }
         Util.setMap(fieldMatrix);
-    }
-
-    private Movable listener;
-
-    public void registerOnUpdatedListener(Movable listener){
-        this.listener = listener;
+        segments = Util.readSegments();
+        for (Station station : stations){
+            station.setStationSegments(segments.stream().filter(segment ->
+            segment.getId().contains(station.getStationId())).collect(Collectors.toList()));
+        }
     }
 
     private void moveTrain() {
         var imageView = new ImageView(locomotive.getLocomotiveImage());
         locomotive.start();
-        registerOnUpdatedListener(listener);
-        synchronized (this) {
-            while (locomotive.isAlive()) {
-                try {
-                    wait();
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
+        Thread updatingThread = new Thread(){
+            @Override
+            public void run() {
+                while (!locomotive.isFinished()) {
+                    if(locomotive.isUpdated()) {
+                        renderItem(locomotive.getCurrentField(), locomotive.getPreviousField(), imageView);
+                        locomotive.setUpdated(false);
+                    }
+                    try {
+                        Thread.sleep(1000/60);
+                    } catch (InterruptedException e) {
+                        e.printStackTrace();
+                    }
                 }
-                renderItem(locomotive.getCurrentField(), imageView);
             }
-        }
+        };
+        updatingThread.start();
     }
 //        new Thread(()->{
 //            Image trainImage = null;
