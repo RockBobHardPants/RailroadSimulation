@@ -1,16 +1,34 @@
 package map;
 
-import java.util.ArrayList;
-import java.util.List;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.util.*;
 
 public class Station{
     private final String stationId;
     private final List<Field> stationFields;
     private List<Segment> stationSegments;
+    public Map<String, String> stationExitMap;
+    private List<Field> stationExitFields;
 
     public Station(String stationId) {
         this.stationId = stationId;
         stationFields = new ArrayList<>(4);
+        stationExitMap = new HashMap<>();
+        loadStationExits();
+    }
+
+    private void loadStationExits(){
+        var properties = new Properties();
+        try {
+            properties.load(new InputStreamReader(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("station_" + stationId.toLowerCase() + ".config"))));
+            for(String propertyName : properties.stringPropertyNames()){
+                stationExitMap.put(propertyName, properties.getProperty(propertyName));
+                //TODO parsiraj koordinate u intove i pokupi iz Util.map
+            }
+        } catch (IOException ioException) {
+            ioException.printStackTrace();
+        }
     }
 
 //    public Field getDepartureField(Station destinationStation){

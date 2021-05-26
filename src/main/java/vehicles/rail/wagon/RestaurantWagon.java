@@ -7,4 +7,9 @@ public class RestaurantWagon extends Wagon{
         super(label, length);
         this.description = description;
     }
+
+    @Override
+    protected void setWagonImage() {
+
+    }
 }

@@ -1,6 +1,6 @@
 package vehicles.rail.wagon;
 
-public enum WagonType {
+public enum PassengerWagonType {
     SEAT,
     BED,
     RESTAURANT,

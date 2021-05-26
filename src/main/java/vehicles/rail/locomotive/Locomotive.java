@@ -2,6 +2,7 @@ package vehicles.rail.locomotive;
 
 import MovableInterface.Movable;
 import javafx.scene.image.Image;
+import javafx.scene.image.ImageView;
 import map.Field;
 import map.FieldType;
 import map.Station;
@@ -13,7 +14,7 @@ import java.io.FileNotFoundException;
 import java.nio.file.Paths;
 
 
-public class Locomotive extends Thread implements Movable {
+public class Locomotive extends Thread {
     public static final String IMAGES = "images";
     private final LocomotiveDrive locomotiveDrive;
     private final LocomotiveType locomotiveType;
@@ -24,16 +25,17 @@ public class Locomotive extends Thread implements Movable {
     private Field currentField;
     private Field previousField;
     private Image locomotiveImage;
+    private ImageView locomotiveImageView;
     private boolean finished;
     private boolean updated;
 
-    public Locomotive(LocomotiveDrive locomotiveDrive, LocomotiveType locomotiveType, Double power, String label, Station destinationStation, Station departureStatoin) {
+    public Locomotive(LocomotiveDrive locomotiveDrive, LocomotiveType locomotiveType, Double power, String label, Station destinationStation, Station departureStation) {
         this.locomotiveDrive = locomotiveDrive;
         this.locomotiveType = locomotiveType;
         this.power = power;
         this.label = label;
         this.destinationStation = destinationStation;
-        this.departureStation = departureStatoin;
+        this.departureStation = departureStation;
         finished = false;
         setLocomotiveImage();
     }
@@ -50,6 +52,7 @@ public class Locomotive extends Thread implements Movable {
         } catch (FileNotFoundException fileNotFoundException) {
             fileNotFoundException.printStackTrace();
         }
+        this.locomotiveImageView = new ImageView(locomotiveImage);
     }
 
     public Field getCurrentField() {
@@ -58,7 +61,6 @@ public class Locomotive extends Thread implements Movable {
 
     public void setCurrentField(Field currentField) {
         this.currentField = currentField;
-        previousField = null;
     }
 
     public Field getPreviousField() {
@@ -83,16 +85,17 @@ public class Locomotive extends Thread implements Movable {
                 move();
                 if(checkStationField()){
                     try {
-                        sleep(3000);
+                        wait(3000);
                     } catch (InterruptedException e) {
+                        Thread.currentThread().interrupt();
                         e.printStackTrace();
                     }
                 }
                 checkIsFinished();
-                System.out.println(currentField.getCoordinates().getRow() + " , " + currentField.getCoordinates().getColumn());
                 try {
-                    sleep(1000);
+                    wait(1000);
                 } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
                     e.printStackTrace();
                 }
             }
@@ -121,12 +124,6 @@ public class Locomotive extends Thread implements Movable {
         return label;
     }
 
-    @Override
-    public void go(Field currentField, Image image) {
-        this.currentField = currentField;
-        image = locomotiveImage;
-    }
-
     public boolean isUpdated() {
         return updated;
     }
@@ -141,5 +138,9 @@ public class Locomotive extends Thread implements Movable {
 
     public void setFinished(boolean finished) {
         this.finished = finished;
+    }
+
+    public ImageView getLocomotiveImageView() {
+        return locomotiveImageView;
     }
 }

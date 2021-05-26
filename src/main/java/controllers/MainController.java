@@ -15,9 +15,13 @@ import map.FieldType;
 import map.Segment;
 import map.Station;
 import util.Util;
+import vehicles.rail.composition.Composition;
 import vehicles.rail.locomotive.Locomotive;
 import vehicles.rail.locomotive.LocomotiveDrive;
 import vehicles.rail.locomotive.LocomotiveType;
+import vehicles.rail.wagon.PassengerWagon;
+import vehicles.rail.wagon.PassengerWagonType;
+import vehicles.rail.wagon.Wagon;
 
 import java.io.*;
 import java.nio.file.Paths;
@@ -41,6 +45,7 @@ public class MainController {
     private List<Field> fieldsMap;
     private List<StackPane> stackPanes;
     private List<Locomotive> locomotives;
+    private List<Composition> compositionList;
     private List<Station> stations;
     private List<Segment> segments;
     private Field[][] fieldMatrix;
@@ -64,29 +69,33 @@ public class MainController {
         return map;
     }
 
-    public void renderItem(Field currentField, Field previousField,ImageView imageView){
+    public void renderItem(Field currentField, Field previousField, ImageView imageView){
         ObservableList<Node> nodes = gridPane.getChildren();
         StackPane currentNode = null;
         StackPane previousNode = null;
+        if(previousField == null)
+            previousField = currentField;
         for(Node node : nodes){
-            if(GridPane.getRowIndex(node) == currentField.getCoordinates().getRow() &&
-                    GridPane.getColumnIndex(node) == currentField.getCoordinates().getColumn()){
-                currentNode = (StackPane) node;
-            } else if(GridPane.getRowIndex(node) == previousField.getCoordinates().getRow() &&
-                    GridPane.getColumnIndex(node) == previousField.getCoordinates().getColumn()){
-                previousNode = (StackPane) node;
+            if(currentField != null) {
+                if (GridPane.getRowIndex(node) == currentField.getCoordinates().getRow() &&
+                        GridPane.getColumnIndex(node) == currentField.getCoordinates().getColumn()) {
+                    currentNode = (StackPane) node;
+                } else if (GridPane.getRowIndex(node) == previousField.getCoordinates().getRow() &&
+                        GridPane.getColumnIndex(node) == previousField.getCoordinates().getColumn()) {
+                    previousNode = (StackPane) node;
+                }
             }
         }
-        var currentNodeFinal = currentNode;
-        var previousNodeFinal = previousNode;
-        Platform.runLater(() -> {
-            imageView.setRotate(imageView.getRotate() + currentField.getFieldRotation());
-            currentNodeFinal.setAlignment(Pos.CENTER);
-            previousNodeFinal.setAlignment(Pos.CENTER);
-//            previousNodeFinal.getChildren().remove(1);
-            currentNodeFinal.getChildren().add(1,imageView);
-            System.out.println(currentNodeFinal);
-        });
+        if(currentField != null) {
+            var currentNodeFinal = currentNode;
+//        var previousNodeFinal = previousNode;
+            Platform.runLater(() -> {
+                imageView.setRotate(currentField.getFieldRotation());
+                currentNodeFinal.setAlignment(Pos.CENTER);
+//            previousNodeFinal.setAlignment(Pos.CENTER);
+                currentNodeFinal.getChildren().add(1, imageView);
+            });
+        }
     }
 
 //    private void readSegments(){
@@ -101,16 +110,28 @@ public class MainController {
 //            Logger.getLogger("global").log(Level.SEVERE, "IO Exception");
 //        }
 //    }
-
+    Wagon passengerWagon;
+    Locomotive locomotive2;
     private void spawnTrain() {
         locomotive = new Locomotive(LocomotiveDrive.DIESEL, LocomotiveType.MANEUVER, 50.0, "A", stations.stream().filter(station -> station.getStationId().equals("C")).findFirst().get(), stations.stream().filter(station -> station.getStationId().equals("A")).findFirst().get());
-        locomotives = new ArrayList<>();
+        locomotive2 = new Locomotive(LocomotiveDrive.ELECTRIC, LocomotiveType.PASSENGER, 50.0, "B", stations.stream().filter(station -> station.getStationId().equals("C")).findFirst().get(), stations.stream().filter(station -> station.getStationId().equals("B")).findFirst().get());
+        passengerWagon = new PassengerWagon(PassengerWagonType.SEAT, 6, "Investigator", 25.0);
+        List<Wagon> wagonList = new ArrayList<>();
+        wagonList.add(passengerWagon);
+//        locomotives = new ArrayList<>();
+        compositionList = new ArrayList<>();
 //        Optional<Field> initialField = fieldsMap.stream().filter(field -> field.getFieldType().equals(FieldType.RAILROAD)).findAny();
 //        List<Field> listOfRailroadFields = fieldsMap.stream().filter(field -> field.getFieldType().equals(FieldType.RAILROAD)).collect(Collectors.toList());
 //        var field = listOfRailroadFields.get(new Random().nextInt(listOfRailroadFields.size()));
         var field = stations.stream().filter(station -> station.getStationId().equals("A")).findFirst().get().getStationFields().get(1);
+        var field1 = stations.stream().filter(station -> station.getStationId().equals("B")).findFirst().get().getStationFields().get(3);
         locomotive.setCurrentField(field);
-        locomotives.add(locomotive);
+        locomotive2.setCurrentField(field1);
+        Composition composition = new Composition(locomotive, locomotive2, wagonList,
+                stations.stream().filter(station -> station.getStationId().equals("B")).findFirst().get(), field,
+                stations.stream().filter(station -> station.getStationId().equals("A")).findFirst().get(), 50);
+        System.out.println(composition.getFrontLocomotive() + "\n" + composition.getWagonList() + "\n" + composition.getRearLocomotive());
+        compositionList.add(composition);
     }
 
     private void addStation(String label, int i, int j){
@@ -130,7 +151,8 @@ public class MainController {
 
     //TODO prebaciti inicijalizaciju u Util klasu, da vraća samo fieldMatrix po čemu će se iscrtati gridPane;
     //TODO Napraviti mapu za svaku stanicu tako da se zna koji izlaz iz stanice je za koji smjer i učitaj ga u svaku stanicu
-    //TODO Napravi sinhronizaciju nad učitanim segmentima 
+    //TODO Napravi sinhronizaciju nad učitanim segmentima
+
 
     public void initialize() throws FileNotFoundException {
         button.setOnMouseClicked(mouseEvent -> {
@@ -259,55 +281,36 @@ public class MainController {
         for (Station station : stations){
             station.setStationSegments(segments.stream().filter(segment ->
             segment.getId().contains(station.getStationId())).collect(Collectors.toList()));
+            System.out.println(station.stationExitMap);
         }
     }
 
     private void moveTrain() {
         var imageView = new ImageView(locomotive.getLocomotiveImage());
-        locomotive.start();
-        Thread updatingThread = new Thread(){
-            @Override
-            public void run() {
-                while (!locomotive.isFinished()) {
-                    if(locomotive.isUpdated()) {
-                        renderItem(locomotive.getCurrentField(), locomotive.getPreviousField(), imageView);
-                        locomotive.setUpdated(false);
+        compositionList.forEach(Thread::start);
+        var updatingThread = new Thread(() -> {
+            while (true) {
+                compositionList.forEach(composition -> {
+                    if(composition.isUpdated()){
+                        renderItem(composition.getCurrentField(), composition.getPreviousField(), composition.getFrontLocomotive().getLocomotiveImageView());
+                        if(composition.getWagonList() != null) {
+                            composition.getWagonList().forEach(wagon -> renderItem(wagon.getCurrentField(), wagon.getPreviousField(), wagon.getWagonImageView()));
+                        }
+                        renderItem(composition.getRearLocomotive().getCurrentField(), composition.getRearLocomotive().getPreviousField(), composition.getRearLocomotive().getLocomotiveImageView());
+                        composition.setUpdated(false);
                     }
-                    try {
-                        Thread.sleep(1000/60);
-                    } catch (InterruptedException e) {
-                        e.printStackTrace();
-                    }
+                });
+//                if(locomotive.isUpdated()) {
+//                    renderItem(locomotive.getCurrentField(), locomotive.getPreviousField(), imageView);
+//                    locomotive.setUpdated(false);
+//                }
+                try {
+                    Thread.sleep(1000/60);
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
                 }
             }
-        };
+        });
         updatingThread.start();
     }
-//        new Thread(()->{
-//            Image trainImage = null;
-//            try {
-//                trainImage = new Image(new FileInputStream(Paths.get("").toAbsolutePath() + File.separator + "images" + File.separator + "steamTrain.png"));
-//            } catch (FileNotFoundException fileNotFoundException) {
-//                fileNotFoundException.printStackTrace();
-//            }
-//            var imageView = new ImageView(trainImage);
-//            var field = locomotives.get(0).getCurrentField();
-//
-//            ObservableList<Node> nodes = gridPane.getChildren();
-//            for(Node node : nodes){
-//                if(GridPane.getRowIndex(node) == field.getCoordinates().getRow() &&
-//                        GridPane.getColumnIndex(node) == field.getCoordinates().getColumn()){
-//                    var stackPane = (StackPane) node;
-//                    stackPane.setAlignment(Pos.CENTER);
-//                    imageView.setRotate(imageView.getRotate() + field.getFieldRotation());
-//                    stackPane.getChildren().add(imageView);
-//                    Platform.runLater(() -> {
-//                        gridPane.getChildren().remove(node);
-//                        gridPane.add(stackPane, field.getCoordinates().getColumn(), field.getCoordinates().getRow());
-//                    });
-//                }
-//            }
-//        }).start();
-
-
 }

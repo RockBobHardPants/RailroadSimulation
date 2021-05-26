@@ -7,4 +7,9 @@ public class FreightWagon extends Wagon{
         super(label, length);
         this.loadCapacity = loadCapacity;
     }
+
+    @Override
+    protected void setWagonImage(){
+
+    }
 }
