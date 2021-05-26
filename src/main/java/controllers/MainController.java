@@ -111,13 +111,17 @@ public class MainController {
 //        }
 //    }
     Wagon passengerWagon;
+    Wagon passengerWagon1;
     Locomotive locomotive2;
     private void spawnTrain() {
         locomotive = new Locomotive(LocomotiveDrive.DIESEL, LocomotiveType.MANEUVER, 50.0, "A", stations.stream().filter(station -> station.getStationId().equals("C")).findFirst().get(), stations.stream().filter(station -> station.getStationId().equals("A")).findFirst().get());
         locomotive2 = new Locomotive(LocomotiveDrive.ELECTRIC, LocomotiveType.PASSENGER, 50.0, "B", stations.stream().filter(station -> station.getStationId().equals("C")).findFirst().get(), stations.stream().filter(station -> station.getStationId().equals("B")).findFirst().get());
         passengerWagon = new PassengerWagon(PassengerWagonType.SEAT, 6, "Investigator", 25.0);
+        passengerWagon1 = new PassengerWagon(PassengerWagonType.BED, 4, "Nina", 20.0);
         List<Wagon> wagonList = new ArrayList<>();
+        List<Wagon> wagonList1 = new ArrayList<>();
         wagonList.add(passengerWagon);
+        wagonList1.add(passengerWagon1);
 //        locomotives = new ArrayList<>();
         compositionList = new ArrayList<>();
 //        Optional<Field> initialField = fieldsMap.stream().filter(field -> field.getFieldType().equals(FieldType.RAILROAD)).findAny();
@@ -127,11 +131,14 @@ public class MainController {
         var field1 = stations.stream().filter(station -> station.getStationId().equals("B")).findFirst().get().getStationFields().get(3);
         locomotive.setCurrentField(field);
         locomotive2.setCurrentField(field1);
-        Composition composition = new Composition(locomotive, locomotive2, wagonList,
+        Composition composition = new Composition(locomotive, null, wagonList,
                 stations.stream().filter(station -> station.getStationId().equals("B")).findFirst().get(), field,
                 stations.stream().filter(station -> station.getStationId().equals("A")).findFirst().get(), 50);
-        System.out.println(composition.getFrontLocomotive() + "\n" + composition.getWagonList() + "\n" + composition.getRearLocomotive());
+        Composition composition1 = new Composition(locomotive2, null, wagonList1, stations.stream().filter(station -> station.getStationId().equals("C")).findFirst().get(), field1,
+                stations.stream().filter(station -> station.getStationId().equals("B")).findFirst().get(), 100);
+//        System.out.println(composition.getFrontLocomotive() + "\n" + composition.getWagonList() + "\n" + composition.getRearLocomotive());
         compositionList.add(composition);
+        compositionList.add(composition1);
     }
 
     private void addStation(String label, int i, int j){
@@ -153,7 +160,8 @@ public class MainController {
     //TODO Napraviti mapu za svaku stanicu tako da se zna koji izlaz iz stanice je za koji smjer i učitaj ga u svaku stanicu
     //TODO Napravi sinhronizaciju nad učitanim segmentima
 
-
+    //TODO uskladi column i row u svim dijelovima koda
+    //TODO prebaci ucitavanje mape iz fajla iz kontrolera u Util klasu ili neku novu klasu
     public void initialize() throws FileNotFoundException {
         button.setOnMouseClicked(mouseEvent -> {
             spawnTrain();
@@ -279,9 +287,9 @@ public class MainController {
         Util.setMap(fieldMatrix);
         segments = Util.readSegments();
         for (Station station : stations){
+            station.loadStationExits();
             station.setStationSegments(segments.stream().filter(segment ->
             segment.getId().contains(station.getStationId())).collect(Collectors.toList()));
-            System.out.println(station.stationExitMap);
         }
     }
 
@@ -296,11 +304,13 @@ public class MainController {
                         if(composition.getWagonList() != null) {
                             composition.getWagonList().forEach(wagon -> renderItem(wagon.getCurrentField(), wagon.getPreviousField(), wagon.getWagonImageView()));
                         }
-                        renderItem(composition.getRearLocomotive().getCurrentField(), composition.getRearLocomotive().getPreviousField(), composition.getRearLocomotive().getLocomotiveImageView());
+                        if(composition.getRearLocomotive() != null) {
+                            renderItem(composition.getRearLocomotive().getCurrentField(), composition.getRearLocomotive().getPreviousField(), composition.getRearLocomotive().getLocomotiveImageView());
+                        }
                         composition.setUpdated(false);
                     }
                 });
-//                if(locomotive.isUpdated()) {
+//                    if(locomotive.isUpdated()) {
 //                    renderItem(locomotive.getCurrentField(), locomotive.getPreviousField(), imageView);
 //                    locomotive.setUpdated(false);
 //                }

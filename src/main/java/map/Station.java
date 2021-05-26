@@ -1,5 +1,7 @@
 package map;
 
+import util.Util;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
@@ -15,25 +17,31 @@ public class Station{
         this.stationId = stationId;
         stationFields = new ArrayList<>(4);
         stationExitMap = new HashMap<>();
-        loadStationExits();
+        stationExitFields = new ArrayList<>();
     }
 
-    private void loadStationExits(){
+    public void loadStationExits(){
         var properties = new Properties();
+        Field field;
+        int column;
+        int row;
+        String[] coordinates;
         try {
             properties.load(new InputStreamReader(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("station_" + stationId.toLowerCase() + ".config"))));
             for(String propertyName : properties.stringPropertyNames()){
                 stationExitMap.put(propertyName, properties.getProperty(propertyName));
-                //TODO parsiraj koordinate u intove i pokupi iz Util.map
+                coordinates = properties.getProperty(propertyName).split(",");
+                column = Integer.parseInt(coordinates[0]);
+                row = Integer.parseInt(coordinates[1]);
+                field = Util.getMap()[row][column];
+                if(!stationExitFields.contains(field)) {
+                    stationExitFields.add(field);
+                }
             }
         } catch (IOException ioException) {
             ioException.printStackTrace();
         }
     }
-
-//    public Field getDepartureField(Station destinationStation){
-//
-//    }
 
     public List<Field> getStationFields() {
         return stationFields;
@@ -62,5 +70,9 @@ public class Station{
 
     public void setStationSegments(List<Segment> stationSegments) {
         this.stationSegments = stationSegments;
+    }
+
+    public List<Field> getStationExitFields() {
+        return stationExitFields;
     }
 }

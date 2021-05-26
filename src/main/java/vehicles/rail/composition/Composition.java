@@ -42,8 +42,9 @@ public class Composition extends Thread {
                 tempField = wagon.getPreviousField();
             }
         }
-        rearLocomotive.setCurrentField(tempField);
-        System.out.println(rearLocomotive.getCurrentField());
+        if(rearLocomotive != null) {
+            rearLocomotive.setCurrentField(tempField);
+        }
     }
 
     public void move(){
@@ -59,7 +60,8 @@ public class Composition extends Thread {
     }
 
     public void checkIsFinished() {
-        if(destinationStation.getStationFields().stream().anyMatch(stationField -> stationField.equals(currentField))){
+        System.out.println();
+        if(destinationStation.getStationExitFields().stream().anyMatch(stationExitField -> currentField.equals(stationExitField))){
             finished = true;
             System.out.println(isFinished());
         }
@@ -81,6 +83,7 @@ public class Composition extends Thread {
                 checkIsFinished();
                 if(finished){
                     //TODO implementirati uslov za zaustavljanje na posljednjoj stanici
+                    //TODO Prestati iscrtavati kompoziciju po zaustavljanju
                 }
                 try {
                     wait(movementSpeed * 10);

@@ -30,7 +30,6 @@ public abstract class Wagon {
     }
 
     public void setCurrentField(Field currentField) {
-        System.out.println(currentField);
         if(moved) {
             previousField = this.currentField;
         }

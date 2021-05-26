@@ -107,7 +107,6 @@ public class Field {
         return fieldRotation;
     }
 
-
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
@@ -119,5 +118,10 @@ public class Field {
     @Override
     public int hashCode() {
         return Objects.hash(fieldType, hasElectricity, coordinates);
+    }
+
+    @Override
+    public String toString() {
+        return "Field " + coordinates;
     }
 }

@@ -64,4 +64,8 @@ public class Util {
     public static void setMap(Field[][] map) {
         Util.map = map;
     }
+
+    public static Field[][] getMap(){
+        return map;
+    }
 }
