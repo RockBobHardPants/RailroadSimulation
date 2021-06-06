@@ -1,9 +1,9 @@
 package vehicles.rail.wagon;
 
 public class FreightWagon extends Wagon{
-    private Double loadCapacity;
+    private double loadCapacity;
 
-    public FreightWagon(Double loadCapacity, String label, Double length) {
+    public FreightWagon(double loadCapacity, String label, Double length) {
         super(label, length);
         this.loadCapacity = loadCapacity;
     }

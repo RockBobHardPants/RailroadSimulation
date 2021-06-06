@@ -6,17 +6,20 @@ import javafx.scene.image.ImageView;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.StringReader;
 import java.nio.file.Paths;
 
 public class PassengerWagon extends Wagon{
     public static final String IMAGES = "images";
     private final PassengerWagonType passengerWagonType;
-    private final int numberOfPersons;
+    private int numberOfPersons;
+    private String description;
 
-    public PassengerWagon(PassengerWagonType passengerWagonType, int numberOfPersons, String label, Double length) {
+    public PassengerWagon(PassengerWagonType passengerWagonType, int numberOfPersons, String description, String label, Double length) {
         super(label, length);
         this.passengerWagonType = passengerWagonType;
         this.numberOfPersons = numberOfPersons;
+        this.description = description;
         setWagonImage();
     }
 

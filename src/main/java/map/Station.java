@@ -1,7 +1,5 @@
 package map;
 
-import util.Util;
-
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
@@ -10,8 +8,8 @@ public class Station{
     private final String stationId;
     private final List<Field> stationFields;
     private List<Segment> stationSegments;
-    public Map<String, String> stationExitMap;
-    private List<Field> stationExitFields;
+    private final java.util.Map<String, String> stationExitMap;
+    private final List<Field> stationExitFields;
 
     public Station(String stationId) {
         this.stationId = stationId;
@@ -27,13 +25,14 @@ public class Station{
         int row;
         String[] coordinates;
         try {
-            properties.load(new InputStreamReader(Objects.requireNonNull(getClass().getClassLoader().getResourceAsStream("station_" + stationId.toLowerCase() + ".config"))));
+            properties.load(new InputStreamReader(Objects.requireNonNull(getClass().getClassLoader()
+                      .getResourceAsStream("station_" + stationId.toLowerCase() + ".config"))));
             for(String propertyName : properties.stringPropertyNames()){
                 stationExitMap.put(propertyName, properties.getProperty(propertyName));
                 coordinates = properties.getProperty(propertyName).split(",");
                 column = Integer.parseInt(coordinates[0]);
                 row = Integer.parseInt(coordinates[1]);
-                field = Util.getMap()[row][column];
+                field = Map.getMapMatrix()[row][column];
                 if(!stationExitFields.contains(field)) {
                     stationExitFields.add(field);
                 }
@@ -41,6 +40,14 @@ public class Station{
         } catch (IOException ioException) {
             ioException.printStackTrace();
         }
+        System.out.println(stationId + " = " + stationExitMap);
+    }
+
+    public Field trainDirection(Station destinationStation){
+        String coordinates = stationExitMap.get(destinationStation.stationId);
+        var column = Integer.parseInt(coordinates.split(",")[0]);
+        var row = Integer.parseInt(coordinates.split(",")[1]);
+        return Map.getMapMatrix()[row][column];
     }
 
     public List<Field> getStationFields() {
@@ -74,5 +81,9 @@ public class Station{
 
     public List<Field> getStationExitFields() {
         return stationExitFields;
+    }
+
+    public java.util.Map<String, String> getStationExitMap() {
+        return stationExitMap;
     }
 }
