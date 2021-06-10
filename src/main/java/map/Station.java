@@ -1,18 +1,24 @@
 package map;
 
+import vehicles.rail.composition.Composition;
+
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.util.*;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+import java.util.stream.Collectors;
 
 public class Station{
     private final String stationId;
     private final List<Field> stationFields;
-    private List<Segment> stationSegments;
+    private List<RailroadSegment> stationSegments;
     private final java.util.Map<String, String> stationExitMap;
     private final List<Field> stationExitFields;
 
     public Station(String stationId) {
         this.stationId = stationId;
+        stationSegments = new ArrayList<>();
         stationFields = new ArrayList<>(4);
         stationExitMap = new HashMap<>();
         stationExitFields = new ArrayList<>();
@@ -38,9 +44,56 @@ public class Station{
                 }
             }
         } catch (IOException ioException) {
-            ioException.printStackTrace();
+            Logger.getLogger(Station.class.getName()).log(Level.SEVERE, ioException.getMessage());
         }
-        System.out.println(stationId + " = " + stationExitMap);
+    }
+
+    public void notifyCrossing(Composition composition){
+        var segment = stationSegments.stream()
+                .filter(railroadSegment -> railroadSegment.hasComposition(composition)).findFirst();
+        segment.ifPresent(RailroadSegment::updateCrossingState);
+    }
+
+    public void removeCompositionFromSegment(Composition composition){
+        var entranceField = trainDirection(composition.getDepartureStation());
+        var tempSegment = stationSegments.stream()
+                .filter(segment -> segment.getSecondStation().equals(this))
+                .collect(Collectors.toList())                                                                           //pronadji segmente kojima je ova stanica druga
+                .stream().filter(segment -> segment.checkIfFieldInSegment(entranceField)).findFirst();                  //pronadji na osnovu ulaznog polja sa kojeg od tih segmenata je voz usao
+        if(tempSegment.isPresent() && tempSegment.get().hasComposition(composition)){
+            tempSegment.get().removeCompositionFromSegment(composition);                                                //obrisi taj voz iz liste vozova na pronadjenom segmentu
+        }
+    }
+
+    public boolean safeToGo(Composition composition) {
+        var exitField = trainDirection(composition.getDestinationStation());
+        var oppositeSegment = stationSegments.stream()                                            //pronadji segmente kojima je ova stanica druga
+                .filter(segment -> segment.getSecondStation().equals(this)).collect(Collectors.toList())                //pronadji na osnovu izlaznog polja koji od mogucih segmenata
+                .stream().filter(segment -> segment.checkIfFieldInSegment(exitField)).findFirst();                      //jeste nasuprotan segment
+        var nextSegment = stationSegments.stream()                                                //pronadji segmente kojima je ova stanica prva
+                .filter(segment -> segment.getFirstStation().equals(this)).collect(Collectors.toList())                 //pronadji na osnovu izlaznog polja koji od mogucih segmenata
+                .stream().filter(segment -> segment.checkIfFieldInSegment(exitField)).findFirst();                      //jeste sljedeci segment
+        synchronized (this) {
+            if (oppositeSegment.isPresent() && oppositeSegment.get().hasComposition()) {
+                return false;
+            } else if (nextSegment.isPresent() && !nextSegment.get().hasComposition()) {
+                composition.setTemporaryMovementSpeed(0);
+                nextSegment.get().addCompositionOnSegment(composition);
+                return true;
+            } else if (nextSegment.isPresent() && nextSegment.get().hasComposition()){
+                int minSpeed = composition.getMovementSpeed();
+                var waitTime = 0;
+                for (Composition composition1 : nextSegment.get().getCompositionsOnSegment()){
+                    minSpeed = Math.min(composition.getMovementSpeed(), composition1.getMovementSpeed());
+                    waitTime = (composition1.getLength() + 3) * (10_000 / composition1.getMovementSpeed());
+                }
+                composition.setTemporaryMovementSpeed(minSpeed);
+                composition.setWaitingTime(waitTime);
+                nextSegment.get().addCompositionOnSegment(composition);
+                return true;
+            }
+            return false;
+        }
     }
 
     public Field trainDirection(Station destinationStation){
@@ -48,6 +101,10 @@ public class Station{
         var column = Integer.parseInt(coordinates.split(",")[0]);
         var row = Integer.parseInt(coordinates.split(",")[1]);
         return Map.getMapMatrix()[row][column];
+    }
+
+    public void addSegment(RailroadSegment segment){
+        stationSegments.add(segment);
     }
 
     public List<Field> getStationFields() {
@@ -71,11 +128,11 @@ public class Station{
                 ", stationSegments=" + stationSegments;
     }
 
-    public List<Segment> getStationSegments() {
+    public List<RailroadSegment> getStationSegments() {
         return stationSegments;
     }
 
-    public void setStationSegments(List<Segment> stationSegments) {
+    public void setStationSegments(List<RailroadSegment> stationSegments) {
         this.stationSegments = stationSegments;
     }
 

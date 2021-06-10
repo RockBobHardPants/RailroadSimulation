@@ -1,5 +1,6 @@
 package map;
 
+import controllers.MainController;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 
@@ -9,6 +10,8 @@ import java.io.FileNotFoundException;
 import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Random;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class Field {
     public static final String IMAGES = "images";
@@ -16,7 +19,7 @@ public class Field {
     private Image fieldImage;
     private ImageView fieldImageView;
     private final FieldType fieldType;
-    private boolean hasElectricity;
+    private boolean electricity;
     private final Coordinates coordinates;
     private final int fieldRotation;
     private int roadCode;
@@ -26,7 +29,7 @@ public class Field {
         this.fieldType = fieldType;
         this.roadCode = roadCode;
         this.roadSide = roadSide;
-        this.hasElectricity = hasElectricity;
+        this.electricity = hasElectricity;
         this.fieldRotation = fieldRotation;
         coordinates = new Coordinates(row, column);
         setFieldImage();
@@ -91,6 +94,12 @@ public class Field {
                                 fieldImageView = new ImageView(fieldImage);
                                 fieldImageView.setRotate(270);
                             }
+                            case 180 -> {
+                                fieldImage = new Image(new FileInputStream(Paths.get("images").toAbsolutePath()
+                                        + File.separator + "roadLeft.png"));
+                                fieldImageView = new ImageView(fieldImage);
+                                fieldImageView.setRotate(0);
+                            }
                             case 270 -> {
                                 fieldImage = new Image(new FileInputStream(Paths.get("images").toAbsolutePath()
                                         + File.separator + "roadLeft.png"));
@@ -129,10 +138,17 @@ public class Field {
                     }
                 }
             } else if (this.fieldType.equals(FieldType.INTERSECTION)){
-                fieldImage = new Image(new FileInputStream(Paths.get("").toAbsolutePath()
-                        + File.separator + IMAGES + File.separator + "intersection.png"));
-                fieldImageView = new ImageView(fieldImage);
-                fieldImageView.setRotate(fieldRotation);
+                if(this.roadCode == 2) {
+                        fieldImage = new Image(new FileInputStream(Paths.get("").toAbsolutePath()
+                                + File.separator + IMAGES + File.separator + "intersection.png"));
+                        fieldImageView = new ImageView(fieldImage);
+                        fieldImageView.setRotate(90);
+                    } else {
+                        fieldImage = new Image(new FileInputStream(Paths.get("").toAbsolutePath()
+                                + File.separator + IMAGES + File.separator + "intersection.png"));
+                        fieldImageView = new ImageView(fieldImage);
+                        fieldImageView.setRotate(0);
+                    }
             } else {
                 fieldImage = new Image(new FileInputStream(Paths.get("").toAbsolutePath()
                         + File.separator + IMAGES + File.separator + "grass.png"));
@@ -140,7 +156,7 @@ public class Field {
                 fieldImageView.setRotate(new Random().nextInt(4) * 90);
             }
         } catch (FileNotFoundException fileNotFoundException) {
-            fileNotFoundException.printStackTrace();
+            Logger.getLogger(MainController.class.getName()).log(Level.SEVERE, fileNotFoundException.getMessage());
         }
     }
 
@@ -190,12 +206,12 @@ public class Field {
 
     public Coordinates getCoordinates() { return coordinates; }
 
-    public boolean getHasElectricity() {
-        return hasElectricity;
+    public boolean getElectricity() {
+        return electricity;
     }
 
-    public void setHasElectricity(boolean hasElectricity){
-        this.hasElectricity = hasElectricity;
+    public void setElectricity(boolean electricity){
+        this.electricity = electricity;
     }
 
     public int getFieldRotation() {
@@ -207,12 +223,12 @@ public class Field {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
         Field field = (Field) o;
-        return hasElectricity == field.hasElectricity && fieldType == field.fieldType && coordinates.equals(field.coordinates);
+        return electricity == field.electricity && fieldType == field.fieldType && coordinates.equals(field.coordinates);
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(fieldType, hasElectricity, coordinates);
+        return Objects.hash(fieldType, electricity, coordinates);
     }
 
     @Override

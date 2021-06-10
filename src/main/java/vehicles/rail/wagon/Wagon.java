@@ -3,6 +3,7 @@ package vehicles.rail.wagon;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import map.Field;
+import map.FieldType;
 
 public abstract class Wagon {
     protected String label;
@@ -11,12 +12,11 @@ public abstract class Wagon {
     protected Field previousField;
     protected Image wagonImage;
     protected ImageView wagonImageView;
-    protected boolean moved;
+    protected boolean inStation;
 
     protected Wagon(String label, Double length) {
         this.label = label;
         this.length = length;
-        moved = false;
     }
 
     protected abstract void setWagonImage();
@@ -30,15 +30,26 @@ public abstract class Wagon {
     }
 
     public void setCurrentField(Field currentField) {
-        if(moved) {
-            previousField = this.currentField;
-        }
         this.currentField = currentField;
-        moved = true;
+        if(currentField != null) {
+            setInStation(currentField.getFieldType().equals(FieldType.STATION));
+        }
     }
 
     public Field getPreviousField() {
         return previousField;
+    }
+
+    public void setPreviousField(Field previousField){
+        this.previousField = previousField;
+    }
+
+    public void setInStation(boolean inStation) {
+        this.inStation = inStation;
+    }
+
+    public boolean isInStation() {
+        return inStation;
     }
 
     @Override

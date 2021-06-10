@@ -1,6 +1,9 @@
 package util;
 
 
+import com.sun.source.tree.IfTree;
+import controllers.MainController;
+import exception.InvalidConfigurationException;
 import map.Map;
 import map.Station;
 import org.json.JSONObject;
@@ -16,10 +19,26 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.logging.Level;
+import java.util.logging.Logger;
+
+import static controllers.MainController.*;
 
 public abstract class Util {
 	public static final String NUMBER = "number";
 	public static final String LABEL = "label";
+	public static final String FRONT = "front";
+	public static final String SPEED = "speed";
+	public static final String ROUTE = "route";
+	public static final String REAR = "rear";
+	public static final String WAGON = "wagon";
+	public static final String TYPE = "type";
+	public static final String LENGTH = "length";
+	public static final String PASSENGER_TYPE = "passengerType";
+	public static final String LOAD = "load";
+	public static final String DRIVE = "drive";
+	public static final String POWER = "power";
+	public static final String DESCRIPTION = "description";
 
 	private Util(){}
 
@@ -28,102 +47,130 @@ public abstract class Util {
 		try {
 			train = new JSONObject(Files.readString(path));
 		} catch (IOException fileNotFoundException) {
-			fileNotFoundException.printStackTrace();
+			Logger.getLogger(Util.class.getName()).log(Level.SEVERE, fileNotFoundException.getMessage());
 		}
 		return train;
 	}
 
-	public static List<Station> buildStationList(String stationListString){
+	public static List<Station> buildStationList(String stationListString) throws InvalidConfigurationException {
 		List<Station> stationList = new ArrayList<>();
 		String[] stationLabels = stationListString.split("-");
 		for(String stationLabel : stationLabels){
 			Optional<Station> stationOptional = Map.getStationList().stream().filter(station -> station.getStationId().equals(stationLabel)).findFirst();
-			stationOptional.ifPresent(stationList::add);
+			if(stationOptional.isPresent()) {
+				stationList.add(stationOptional.get());
+			} else {
+				throw new InvalidConfigurationException(INVALID_COMPOSITION);
+			}
 		}
 		return stationList;
 	}
 
-	public static Locomotive buildLocomotive(JSONObject locomotiveObject){
+	public static Locomotive buildLocomotive(JSONObject locomotiveObject) throws InvalidConfigurationException {
+		if (!locomotiveObject.has(DRIVE) || !locomotiveObject.has(TYPE)) {
+			throw new InvalidConfigurationException(INVALID_COMPOSITION);
+		}
 		Locomotive locomotive;
 		LocomotiveDrive drive;
 		LocomotiveType type;
 		var label = locomotiveObject.getString(LABEL);
-		var power = locomotiveObject.getDouble("power");
-		switch (locomotiveObject.get("drive").toString()){
+		var power = locomotiveObject.getDouble(POWER);
+		switch (locomotiveObject.get(DRIVE).toString()) {
 			case "electric" -> drive = LocomotiveDrive.ELECTRIC;
 			case "steam" -> drive = LocomotiveDrive.STEAM;
 			case "diesel" -> drive = LocomotiveDrive.DIESEL;
 			default -> drive = null;
 		}
-		switch (locomotiveObject.get("type").toString()){
+		switch (locomotiveObject.get(TYPE).toString()) {
 			case "passenger" -> type = LocomotiveType.PASSENGER;
 			case "freight" -> type = LocomotiveType.FREIGHT;
 			case "maneuver" -> type = LocomotiveType.MANEUVER;
 			case "universal" -> type = LocomotiveType.UNIVERSAL;
-			default ->  type = null;
+			default -> type = null;
 		}
-		if(label == null || power == 0 || drive == null || type == null){
-			locomotive = null;
+		if (label == null || power == 0 || drive == null || type == null) {
+			throw new InvalidConfigurationException(INVALID_COMPOSITION);
 		} else {
 			locomotive = new Locomotive(drive, type, power, label);
 		}
 		return locomotive;
 	}
 
-	public static Wagon buildWagon(JSONObject wagonObject){
-		Wagon wagon;
+	public static Wagon buildWagon(JSONObject wagonObject) throws InvalidConfigurationException {
+		if(!wagonObject.has(LENGTH) || !wagonObject.has(LABEL) || !wagonObject.has(TYPE)){
+			throw new InvalidConfigurationException(INVALID_COMPOSITION);
+		}
+		Wagon wagon = null;
 		var label = wagonObject.getString(LABEL);
-		var length = wagonObject.getDouble("length");
-		var type = wagonObject.getString("type");
-		switch (type){
+		var length = wagonObject.getDouble(LENGTH);
+		var type = wagonObject.getString(TYPE);
+		switch (type) {
 			case "freight" -> {
-				var loadCapacity = Double.parseDouble(wagonObject.getString("load"));
+				if(!wagonObject.has(LOAD)){
+					throw new InvalidConfigurationException(INVALID_COMPOSITION);
+				}
+				var loadCapacity = Double.parseDouble(wagonObject.getString(LOAD));
 				wagon = new FreightWagon(loadCapacity, label, length);
 			}
 			case "passenger" -> {
 				PassengerWagonType passengerWagonType;
 				String description = null;
 				var numberOfPersons = 0;
-				switch (wagonObject.getString("passengerType")) {
+				switch (wagonObject.getString(PASSENGER_TYPE)) {
 					case "seat" -> {
+						if(!wagonObject.has(NUMBER)){
+							throw new InvalidConfigurationException(INVALID_COMPOSITION);
+						}
 						passengerWagonType = PassengerWagonType.SEAT;
 						numberOfPersons = wagonObject.getInt(NUMBER);
 					}
 					case "bed" -> {
+						if(!wagonObject.has(NUMBER)){
+							throw new InvalidConfigurationException(INVALID_COMPOSITION);
+						}
 						passengerWagonType = PassengerWagonType.BED;
 						numberOfPersons = wagonObject.getInt(NUMBER);
 					}
 					case "dormitory" -> {
+						if(!wagonObject.has(NUMBER)){
+							throw new InvalidConfigurationException(INVALID_COMPOSITION);
+						}
 						passengerWagonType = PassengerWagonType.DORMITORY;
 						numberOfPersons = wagonObject.getInt(NUMBER);
 					}
 					case "restaurant" -> {
+						if(!wagonObject.has(DESCRIPTION)){
+							throw new InvalidConfigurationException(INVALID_COMPOSITION);
+						}
 						passengerWagonType = PassengerWagonType.RESTAURANT;
-						description = wagonObject.getString("description");
+						description = wagonObject.getString(DESCRIPTION);
 					}
 					default -> passengerWagonType = null;
 				}
-				if(passengerWagonType == null){
-					wagon = null;
-				} else {
+				if (passengerWagonType != null) {
 					wagon = new PassengerWagon(passengerWagonType, numberOfPersons, description, label, length);
 				}
 			}
 			case "special" -> {
-				String description;
-				description = wagonObject.getString("description");
-				wagon = new SpecialPurposeWagon(label, description, length);
+				if(!wagonObject.has(DESCRIPTION)){
+					throw new InvalidConfigurationException(INVALID_COMPOSITION);
+				}
+				wagon = new SpecialPurposeWagon(label, wagonObject.getString(DESCRIPTION), length);
 			}
-			default -> wagon = null;
+			default -> throw new InvalidConfigurationException(INVALID_COMPOSITION);
 		}
 		return wagon;
 	}
 
-	public static List<Wagon> buildWagonList(JSONObject train){
+	public static List<Wagon> buildWagonList(JSONObject train) throws InvalidConfigurationException {
 		List<Wagon> wagonList = new ArrayList<>();
-		var wagons = train.getJSONArray("wagon");
+		if(!train.has(WAGON)) {
+			throw new InvalidConfigurationException(INVALID_COMPOSITION);
+		}
+		var wagons = train.getJSONArray(WAGON);
 		for(Object wagon : wagons){
-			wagonList.add(Util.buildWagon((JSONObject) wagon));
+			var wagon1 = Util.buildWagon((JSONObject) wagon);
+			wagonList.add(wagon1);
 		}
 		return wagonList;
 	}
@@ -160,10 +207,27 @@ public abstract class Util {
 		return composition;
 	}
 
-	public static Composition getComposition(JSONObject train){
-		return Util.buildComposition(train.getString(LABEL), Util.buildLocomotive(train.getJSONObject("front")),
-				Util.buildLocomotive(train.getJSONObject("rear")), Util.buildWagonList(train),
-				Util.buildStationList(train.getString("route")), train.getInt("speed"));
+	public static Composition getComposition(JSONObject train) throws InvalidConfigurationException {
+		if(!train.has(LABEL) || !train.has(FRONT) || !train.has(SPEED) || !train.has(ROUTE) || !train.has(TYPE)){
+			throw new InvalidConfigurationException(INVALID_COMPOSITION);
+		}
+		var label = train.getString(LABEL);
+		var frontLocomotive = buildLocomotive(train.getJSONObject(FRONT));
+		Locomotive rearLocomotive = null;
+		List<Wagon> wagonList = new ArrayList<>();
+		List<Station> stationList = buildStationList(train.getString(ROUTE));
+		var movementSpeed = train.getInt(SPEED);
+		if (train.has(REAR)) {
+			rearLocomotive = buildLocomotive(train.getJSONObject(REAR));
+		}
+		if (train.has(WAGON)) {
+			wagonList = buildWagonList(train);
+		}
+		var composition = buildComposition(label, frontLocomotive, rearLocomotive, wagonList, stationList, movementSpeed);
+		if(composition == null){
+			throw new InvalidConfigurationException(INVALID_COMPOSITION);
+		}
+		return composition;
 	}
 
 }

@@ -4,8 +4,6 @@ import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
 import map.Field;
 import map.FieldType;
-import map.Station;
-import map.Map;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -23,15 +21,13 @@ public class Locomotive {
     private Field previousField;
     private Image locomotiveImage;
     private ImageView locomotiveImageView;
-    private boolean finished;
-    private boolean updated;
+    private boolean inStation;
 
     public Locomotive(LocomotiveDrive locomotiveDrive, LocomotiveType locomotiveType, Double power, String label) {
         this.locomotiveDrive = locomotiveDrive;
         this.locomotiveType = locomotiveType;
         this.power = power;
         this.label = label;
-        finished = false;
         setLocomotiveImage();
     }
 
@@ -56,6 +52,9 @@ public class Locomotive {
 
     public void setCurrentField(Field currentField) {
         this.currentField = currentField;
+        if(currentField != null) {
+            setInStation(currentField.getFieldType().equals(FieldType.STATION));
+        }
     }
 
     public Field getPreviousField() {
@@ -78,23 +77,19 @@ public class Locomotive {
         return label;
     }
 
-    public boolean isUpdated() {
-        return updated;
-    }
-
-    public void setUpdated(boolean updated) {
-        this.updated = updated;
-    }
-
-    public boolean isFinished() {
-        return finished;
-    }
-
-    public void setFinished(boolean finished) {
-        this.finished = finished;
-    }
-
     public ImageView getLocomotiveImageView() {
         return locomotiveImageView;
+    }
+
+    public void setPreviousField(Field previousField) {
+        this.previousField = previousField;
+    }
+
+    public boolean isInStation() {
+        return inStation;
+    }
+
+    public void setInStation(boolean inStation) {
+        this.inStation = inStation;
     }
 }

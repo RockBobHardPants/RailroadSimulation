@@ -1,13 +1,9 @@
 package vehicles.rail.composition;
 
-import map.Field;
-import map.FieldType;
-import map.Station;
-import map.Map;
+import map.*;
 import vehicles.rail.locomotive.Locomotive;
 import vehicles.rail.wagon.Wagon;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,20 +12,26 @@ public class Composition extends Thread {
     private final Locomotive frontLocomotive;
     private final Locomotive rearLocomotive;
     private final List<Wagon> wagonList;
+    private final int length;
     private final Station destinationStation;
     private final Station departureStation;
     private final List<Station> stationList;
     private Station currentStation;
     private Field currentField;
     private Field previousField;
-    private List<Field> occupiedFields;
+    private Field nextField;
+    private Field lastCompositionItemField;
     private boolean departed;
     private boolean finished;
     private boolean updated;
     private boolean stationExit;
-    private boolean wholeCompositionInStation;
     private final int movementSpeed;
-    private boolean inStation;
+    private int temporaryMovementSpeed;
+    private boolean readyToGo;
+    private boolean everythingInStation;
+    private boolean waiting;
+    private boolean passedCrossing;
+    private int waitingTime;
 
     public Composition(String label, Locomotive frontLocomotive, Locomotive rearLocomotive, List<Wagon> wagonList,
                        List<Station> stationList, int movementSpeed) {
@@ -40,66 +42,105 @@ public class Composition extends Thread {
         this.destinationStation = stationList.get(stationList.size() - 1);
         this.currentField = stationList.get(0).getStationFields().get(0);
         this.departureStation = stationList.get(0);
+        currentStation = departureStation;
         this.movementSpeed = movementSpeed;
-        occupiedFields = new ArrayList<>();
         this.stationList = stationList;
         this.stationList.remove(0);
         this.stationList.remove(stationList.size() - 1);
         departed = false;
+        waitingTime = 0;
+        var tempLength = 1;
+        if(rearLocomotive != null){
+            tempLength++;
+        }
+        if(wagonList != null){
+            tempLength = wagonList.size();
+        }
+        length = tempLength;
     }
 
-    //TODO update polja nakon sto voz dodje do stanice neke
     private void setFieldsForItems(){
-        Field tempField = null;
+        Field tempPreviousField = null;
         frontLocomotive.setCurrentField(currentField);
         if(previousField != null){
-            tempField = previousField;
+            frontLocomotive.setPreviousField(previousField);
+            tempPreviousField = previousField;
             if(wagonList != null) {
                 for (Wagon wagon : wagonList) {
-                    wagon.setCurrentField(tempField);
-                    tempField = wagon.getPreviousField();
+                    wagon.setPreviousField(wagon.getCurrentField());
+                    wagon.setCurrentField(tempPreviousField);
+                    tempPreviousField = wagon.getPreviousField();
                 }
             }
         }
         if(rearLocomotive != null) {
-            rearLocomotive.setCurrentField(tempField);
+            if(wagonList == null) {
+                tempPreviousField = rearLocomotive.getCurrentField();
+                rearLocomotive.setCurrentField(previousField);
+                rearLocomotive.setPreviousField(tempPreviousField);
+            } else {
+                tempPreviousField = rearLocomotive.getCurrentField();
+                rearLocomotive.setCurrentField(wagonList.get(wagonList.size() - 1).getPreviousField());
+                rearLocomotive.setPreviousField(tempPreviousField);
+            }
+            tempPreviousField = rearLocomotive.getPreviousField();
+        }
+        lastCompositionItemField = tempPreviousField;
+        if(lastCompositionItemField != null){
+            checkIfCrossingPassed();
         }
     }
 
     public void move(){
         var tempField = currentField;
-        if(departureStation.getStationFields().stream().noneMatch(field -> currentField.equals(field)) || currentField.getFieldType().equals(FieldType.STATION))
-            currentField = Map.getNextFieldTrain(currentField, previousField);
+        nextField = Map.getNextFieldTrain(currentField, previousField);
+        currentField = nextField;
         previousField = tempField;
         setFieldsForItems();
     }
 
-    //TODO kada currentField dodje do stationExitField, prebaci ga na stationField[0] i nastavi updateovati ostatak kompozicije do ocupiedFields.size()
+    int crossingFieldsPassed = 0;
+    private void checkIfCrossingPassed() {
+        var crossing = Map.getRailroadCrossingList().stream()
+                .filter(railroadCrossing -> railroadCrossing.checkCrossingFields(lastCompositionItemField)).findFirst();
+        if(crossing.isPresent() && crossing.get().checkCrossingFields(lastCompositionItemField)){
+            crossingFieldsPassed++;
+            if(crossingFieldsPassed == 2) {
+                passedCrossing = true;
+                currentStation.notifyCrossing(this);
+                crossingFieldsPassed = 0;
+            }
+        }
+    }
+
     public boolean checkStationField(){
         return currentField.getFieldType().equals(FieldType.STATION);
     }
 
-    public boolean checkIsFinished() {
-        if(destinationStation.getStationExitFields().stream().anyMatch(stationExitField -> currentField.equals(stationExitField))){
-            currentStation = destinationStation;
-            finished = true;
-        }
-        return false;
-    }
-
     private boolean everythingInStation(){
+        var frontIn = false;
+        var rearIn = false;
+        var wagonsIn = false;
         if(frontLocomotive.getCurrentField().getFieldType().equals(FieldType.STATION)){
-            if()
+            frontIn = true;
         }
+        if(rearLocomotive == null || rearLocomotive.getCurrentField().getFieldType().equals(FieldType.STATION)){
+            rearIn = true;
+        }
+        if(wagonList == null || wagonList.stream().allMatch(wagon -> wagon.getCurrentField().getFieldType().equals(FieldType.STATION))){
+            wagonsIn = true;
+        }
+        return frontIn && rearIn && wagonsIn;
     }
 
     public void moveTrainIntoStation(){
-        setCurrentField(currentStation.getStationFields().get(1));
-        boolean everythingInStation = false;
-        while(!everythingInStation){
-            frontLocomotive.setCurrentField(currentField);
-
+        if(!currentField.equals(currentStation.getStationFields().get(1))) {
+            setCurrentField(currentStation.getStationFields().get(1));
+            setPreviousField(currentStation.trainDirection(departureStation));
+        } else {
+            setPreviousField(currentStation.getStationFields().get(1));
         }
+        setFieldsForItems();
     }
 
     private boolean checkIsStationExit(){
@@ -108,66 +149,106 @@ public class Composition extends Thread {
         if(optionalStation.isPresent()){
             currentStation = optionalStation.get();
             return true;
+        } else if (destinationStation.getStationExitFields().stream().anyMatch(field -> currentField.equals(field))){
+            currentStation = destinationStation;
+            return true;
         }
         return false;
-    }
-
-
-    private void updateOccupiedFields(){
-        occupiedFields.clear();
-        occupiedFields.add(frontLocomotive.getCurrentField());
-        if (wagonList != null){
-            wagonList.forEach(wagon -> occupiedFields.add(wagon.getCurrentField()));
-        }
-        if (rearLocomotive != null){
-            occupiedFields.add(rearLocomotive.getCurrentField());
-        }
-    }
-
-    private Station checkWhichStationIsIt(){
-        for(Station station : stationList){
-            if(station.getStationFields().stream().anyMatch(field -> currentField.equals(field)))
-                return station;
-        }
-        return null;
     }
 
     private boolean checkIfDepartureStationField(){
         return departureStation.getStationFields().stream().anyMatch(field -> currentField.equals(field));
     }
 
-    //TODO: ako je stationExit, postavi na true i pakuj voz komad po komad u stanicu, tek kad zavrsi stavi na false,
-    // dok je true, nista drugo se ne izvrsava osim pakovanja u stanicu, a tek kada zavrsi sve radi wait(3000), nakon
-    // cega pita kuda dalje, ako je moguce uopste.
     @Override
     public void run() {
         while (!finished) {
-            synchronized (Map.getMapMatrix()[currentField.getCoordinates().getRow()][currentField.getCoordinates().getColumn()]) {
-                if(!departed && checkIfDepartureStationField()){
-                    setCurrentField(departureStation.trainDirection(destinationStation));
-                    departed = true;
-                }
-                if(checkIsStationExit()){
-                    setCurrentField(currentStation.getStationFields().get(0));
-                    stationExit = true;
-                }
-                if(!stationExit  && checkStationField()){
-                    setCurrentField(currentStation.trainDirection(destinationStation));
-                    stationList.remove(currentStation);
-                }
-                if(!stationExit && checkIsFinished()){
-                    break;
-                }
-                move();
-
-                updated = true;
-                try {
-                    sleep(movementSpeed * 10L);
-                } catch (InterruptedException e) {
-                    Thread.currentThread().interrupt();
-                    e.printStackTrace();
+            try {
+            if(!departed && checkIfDepartureStationField()){                                                            //Ako je na pocetnoj stanici i ako je trenutno polje tipa STATION
+                if(departureStation.safeToGo(this)) {
+                    if(waitingTime == 0) {
+                        setCurrentField(departureStation.trainDirection(destinationStation));                           //Postavi izlazno polje koje ide prema destination kao trenutno
+                        waiting = false;
+                        departed = true;
+                    } else {
+                        sleep(waitingTime);
+                        setCurrentField(departureStation.trainDirection(destinationStation));
+                        waiting = false;
+                        departed = true;
+                        waitingTime = 0;
+                    }
+                } else {
+                    waiting = true;
                 }
             }
+            if(checkIsStationExit()){                                                                                   //Provjera da li se voz nalazi na ulaznom/izlaznom polju neke stanice
+                stationExit = true;                                                                                     //Koja nije destination ili departure
+            }
+            if(stationExit){                                                                                            //Ako se nalazi na ulazu u stanicu
+                moveTrainIntoStation();                                                                                 //Ubaci element voza koji nije u stanicu, u stanicu
+                if(everythingInStation()){                                                                              //Provjeri da li je sve u stanici
+                    if(currentStation.equals(destinationStation)){                                                      //Ako je trenutna stanica krajnja, zavrsi sve
+                        destinationStation.removeCompositionFromSegment(this);
+                        updated = true;
+                        finished = true;
+                    }
+                    everythingInStation = true;
+                    stationExit = false;
+                }
+            }
+            if(!stationExit && checkStationField()){
+                if(everythingInStation && readyToGo) {
+                    currentStation.removeCompositionFromSegment(this);
+                    if(currentStation.equals(destinationStation)){
+                        break;
+                    }
+                    if(currentStation.safeToGo(this)) {
+                        if(waitingTime == 0) {
+                            setCurrentField(currentStation.trainDirection(destinationStation));
+                            stationList.remove(currentStation);
+                            readyToGo = false;
+                            everythingInStation = false;
+                            waiting = false;
+                            passedCrossing = false;
+                        } else {
+                            passedCrossing = false;
+                            sleep(waitingTime);
+                            setCurrentField(currentStation.trainDirection(destinationStation));
+                            stationList.remove(currentStation);
+                            readyToGo = false;
+                            everythingInStation = false;
+                            waiting = false;
+                            waitingTime = 0;
+                        }
+                    } else {
+                        waiting = true;
+                    }
+                }
+            }
+            if(!stationExit && !everythingInStation && departed) {
+                move();
+            }
+            if(!waiting) {
+                updated = true;
+            }
+                if(waiting){
+                    sleep(200);
+                }
+                if(!stationExit && everythingInStation && !waiting){
+                    sleep(3000);
+                    readyToGo = true;
+                } else {
+                    if(temporaryMovementSpeed != 0){
+                        sleep(10_000 / temporaryMovementSpeed);
+                    } else {
+                        sleep(10_000 / movementSpeed);
+                    }
+                }
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                e.printStackTrace();
+            }
+            updated = false;
         }
     }
 
@@ -224,18 +305,36 @@ public class Composition extends Thread {
     }
 
     public int getMovementSpeed() {
+        if(temporaryMovementSpeed != 0){
+            return temporaryMovementSpeed;
+        }
         return movementSpeed;
     }
 
-    public List<Field> getOccupiedFields() {
-        return occupiedFields;
-    }
-
-    public boolean isWholeCompositionInStation() {
-        return wholeCompositionInStation;
+    public void setTemporaryMovementSpeed(int movementSpeed){
+        this.temporaryMovementSpeed = movementSpeed;
     }
 
     public String getLabel() {
         return label;
+    }
+
+    public int getLength() {
+        return length;
+    }
+
+    public void setWaitingTime(int waitingTime) {
+        this.waitingTime = waitingTime;
+    }
+
+    public boolean isPassedCrossing() {
+        return passedCrossing;
+    }
+
+    @Override
+    public String toString() {
+        return "Composition{" +
+                "label='" + label + '\'' +
+                '}';
     }
 }

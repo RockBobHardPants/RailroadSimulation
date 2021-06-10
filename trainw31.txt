@@ -1,13 +1,19 @@
 {
-	"label": "First",	
+	"label": "Thirduuu",	
 	"type": "passenger",
-	"route": "A-B-C-E",
+	"route": "D-C-B-A",
 	"speed": 20.0,
 	"front": {
 		"label": "Chochoo",
 		"power": 50.0,
 		"type": "passenger",
 		"drive": "diesel"
+	},
+	"rear": {
+		"label": "Chochoo2",
+		"power": 50.0,
+		"type": "passenger",
+		"drive": "electric"
 	},
 	"wagon": [
 		{

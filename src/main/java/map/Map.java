@@ -7,6 +7,7 @@ import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -15,77 +16,115 @@ import java.util.regex.Pattern;
 import java.util.stream.Collectors;
 
 public abstract class Map {
+    public static final String SEGMENTS_TXT = "segments.txt";
+    public static final String RIGHT = "R";
     private static Field[][] mapMatrix;
     private static List<Station> stationList;
-    private static List<Segment> segmentList;
+    private static List<RailroadSegment> segmentList;
+    private static List<RailroadCrossing> railroadCrossingList;
+    private static List<RoadSegment> roadSegmentList;
+
     private Map(){}
 
     public static Field getNextFieldTrain(Field currentField, Field previousField){
-        int row = currentField.getCoordinates().getRow();
-        int column = currentField.getCoordinates().getColumn();
-        var northField = mapMatrix[row + 1][column];
-        var westField = mapMatrix[row][column + 1];
-        var southField = mapMatrix[row - 1][column];
-        var eastField = mapMatrix[row][column - 1];
-        if((northField.getFieldType().equals(FieldType.RAILROAD) ||
-            northField.getFieldType().equals(FieldType.INTERSECTION)) && !northField.equals(previousField)){
-            return northField;
-        } else if ((westField.getFieldType().equals(FieldType.RAILROAD) ||
-                westField.getFieldType().equals(FieldType.INTERSECTION)) && !westField.equals(previousField)){
-            return westField;
-        } else if ((southField.getFieldType().equals(FieldType.RAILROAD) ||
-                southField.getFieldType().equals(FieldType.INTERSECTION)) && !southField.equals(previousField)){
-            return southField;
-        } else if ((eastField.getFieldType().equals(FieldType.RAILROAD) ||
-                eastField.getFieldType().equals(FieldType.INTERSECTION)) && !eastField.equals(previousField)){
-            return eastField;
+        var row = currentField.getCoordinates().getRow();
+        var column = currentField.getCoordinates().getColumn();
+        try {
+            var northField = mapMatrix[row + 1][column];
+            var westField = mapMatrix[row][column + 1];
+            var southField = mapMatrix[row - 1][column];
+            var eastField = mapMatrix[row][column - 1];
+            if ((northField.getFieldType().equals(FieldType.RAILROAD) ||
+                    northField.getFieldType().equals(FieldType.INTERSECTION)) && !northField.equals(previousField)) {
+                return northField;
+            } else if ((westField.getFieldType().equals(FieldType.RAILROAD) ||
+                    westField.getFieldType().equals(FieldType.INTERSECTION)) && !westField.equals(previousField)) {
+                return westField;
+            } else if ((southField.getFieldType().equals(FieldType.RAILROAD) ||
+                    southField.getFieldType().equals(FieldType.INTERSECTION)) && !southField.equals(previousField)) {
+                return southField;
+            } else if ((eastField.getFieldType().equals(FieldType.RAILROAD) ||
+                    eastField.getFieldType().equals(FieldType.INTERSECTION)) && !eastField.equals(previousField)) {
+                return eastField;
+            }
+        } catch (IndexOutOfBoundsException exception){
+            Logger.getLogger(Map.class.getName()).log(Level.WARNING, exception.getMessage());
         }
         return currentField;
     }
 
-    public static Field getNextFieldVehicle(Field currentField, Field previousField, boolean direction){
-        int row = currentField.getCoordinates().getRow();
-        int column = currentField.getCoordinates().getColumn();
-        var northField = mapMatrix[row + 1][column];
-        var westField = mapMatrix[row][column + 1];
-        var southField = mapMatrix[row - 1][column];
-        var eastField = mapMatrix[row][column - 1];
-        if(direction) {
-            if ((northField.getFieldType().equals(FieldType.ROAD) ||
-                    northField.getFieldType().equals(FieldType.INTERSECTION)) && !northField.equals(previousField)) {
+    public static Field getNextFieldVehicle(Field currentField, Field previousField, boolean direction, String side){
+        var row = currentField.getCoordinates().getRow();
+        var column = currentField.getCoordinates().getColumn();
+        Field northField = null;
+        Field southField = null;
+        Field westField = null;
+        Field eastField = null;
+        try {
+            if(row > 0 && direction) {
+                northField = mapMatrix[row - 1][column];
+            }
+            if (row < 29 && !direction) {
+                southField = mapMatrix[row + 1][column];
+            }
+//            if(column > 0) {
+                eastField = mapMatrix[row][column - 1];
+//            }
+            if (column < 29) {
+                westField = mapMatrix[row][column + 1];
+            }
+            if (northField != null && (northField.getFieldType().equals(FieldType.ROAD)
+                    || northField.getFieldType().equals(FieldType.INTERSECTION)) && !northField.equals(previousField)
+                    && northField.getRoadSide().equals(side)) {
                 return northField;
-            } else if ((westField.getFieldType().equals(FieldType.ROAD) ||
-                    westField.getFieldType().equals(FieldType.INTERSECTION)) && !westField.equals(previousField)) {
+            } else if (westField != null && (westField.getFieldType().equals(FieldType.ROAD)
+                    || westField.getFieldType().equals(FieldType.INTERSECTION)) && !westField.equals(previousField)
+                    && westField.getRoadSide().equals(side)) {
                 return westField;
-            } else if ((southField.getFieldType().equals(FieldType.ROAD) ||
-                    southField.getFieldType().equals(FieldType.INTERSECTION)) && !southField.equals(previousField)) {
+            } else if (southField != null && (southField.getFieldType().equals(FieldType.ROAD)
+                    || southField.getFieldType().equals(FieldType.INTERSECTION)) && !southField.equals(previousField)
+                    && southField.getRoadSide().equals(side)) {
                 return southField;
-            } else if ((eastField.getFieldType().equals(FieldType.ROAD) ||
-                    eastField.getFieldType().equals(FieldType.INTERSECTION)) && !eastField.equals(previousField)) {
+            } else if (eastField != null && (eastField.getFieldType().equals(FieldType.ROAD)
+                    || eastField.getFieldType().equals(FieldType.INTERSECTION)) && !eastField.equals(previousField)
+                    && eastField.getRoadSide().equals(side)) {
                 return eastField;
             }
+        }catch (IndexOutOfBoundsException exception){
+            Logger.getLogger(Map.class.getName()).log(Level.WARNING, exception.getMessage());
         }
         return currentField;
     }
 
     public static void readSegments(){
-        List<Segment> segmentList = new ArrayList<>();
+        List<RailroadSegment> segmentList = new ArrayList<>();
         try (var bufferedReader = new BufferedReader(new FileReader(Paths.get("").toAbsolutePath()
-                                                                    + File.separator + "segments.txt"))) {
+                                                                    + File.separator + SEGMENTS_TXT))) {
             String line;
             while ((line = bufferedReader.readLine()) != null) {
                 String[] splits = line.split(" # ");
                 List<Field> fieldList = Arrays.stream(splits[1].split("],\\[")).map(s -> {
                     var column = Integer.parseInt(s.split(",")[0].replace("[", ""));
                     var row = Integer.parseInt(s.split(",")[1].replace("]", ""));
-                    return mapMatrix[column][row];
+                    return mapMatrix[row][column];
                 }).collect(Collectors.toList());
-                segmentList.add(new Segment(splits[0], fieldList));
+                segmentList.add(new RailroadSegment(splits[0], fieldList));
+                Collections.reverse(fieldList);
+                var stringBuilder = new StringBuilder(splits[0]);
+                stringBuilder.reverse();
+                segmentList.add(new RailroadSegment(stringBuilder.toString(), fieldList));
             }
         } catch (IOException fileNotFoundException) {
-            fileNotFoundException.printStackTrace();
+            Logger.getLogger(Map.class.getName()).log(Level.SEVERE, fileNotFoundException.getMessage());
         }
         Map.segmentList = segmentList;
+    }
+
+    public static void setSegmentsOnStations(){
+        for(RailroadSegment segment : segmentList){
+            segment.getFirstStation().addSegment(segment);
+            segment.getSecondStation().addSegment(segment);
+        }
     }
 
     private static List<String> readMap(){
@@ -98,7 +137,7 @@ public abstract class Map {
                 map.addAll(matches);
             }
         } catch (IOException exception){
-            Logger.getLogger("global").log(Level.SEVERE, "IO Exception");
+            Logger.getLogger(Map.class.getName()).log(Level.SEVERE, exception.getMessage());
         }
         return map;
     }
@@ -130,15 +169,15 @@ public abstract class Map {
                 mapItem = map.get(counter);
                 switch (mapItem){
                     case "1R" -> {
-                        var field = new Field(FieldType.ROAD, 1, "R", false, row, column, 0);
+                        var field = new Field(FieldType.ROAD, 1, RIGHT, false, row, column, 0);
                         mapMatrix[row][column] = field;
                     }
                     case "1L" -> {
-                        var field = new Field(FieldType.ROAD, 1, "L", false, row, column, 0);
+                        var field = new Field(FieldType.ROAD, 1, "L", false, row, column, 180);
                         mapMatrix[row][column] = field;
                     }
                     case "1r" -> {
-                        var field = new Field(FieldType.ROAD, 1, "R", false, row, column, 270);
+                        var field = new Field(FieldType.ROAD, 1, RIGHT, false, row, column, 270);
                         mapMatrix[row][column] = field;
                     }
                     case "1l" -> {
@@ -146,23 +185,23 @@ public abstract class Map {
                         mapMatrix[row][column] = field;
                     }
                     case "2R" -> {
-                        var field = new Field(FieldType.ROAD, 2, "R", false, row, column, 0);
+                        var field = new Field(FieldType.ROAD, 2, RIGHT, false, row, column, 0);
                         mapMatrix[row][column] = field;
                     }
                     case "2L" -> {
-                        var field = new Field(FieldType.ROAD,  2, "L",false, row, column, 0);
+                        var field = new Field(FieldType.ROAD,  2, "L",false, row, column, 180);
                         mapMatrix[row][column] = field;
                     }
                     case "3R" -> {
-                        var field = new Field(FieldType.ROAD,  3, "R",false, row, column, 0);
+                        var field = new Field(FieldType.ROAD,  3, RIGHT,false, row, column, 0);
                         mapMatrix[row][column] = field;
                     }
                     case "3L" -> {
-                        var field = new Field(FieldType.ROAD,  3, "L",false, row, column, 0);
+                        var field = new Field(FieldType.ROAD,  3, "L",false, row, column, 180);
                         mapMatrix[row][column] = field;
                     }
                     case "3r" -> {
-                        var field = new Field(FieldType.ROAD,  3, "R",false, row, column, 90);
+                        var field = new Field(FieldType.ROAD,  3, RIGHT,false, row, column, 90);
                         mapMatrix[row][column] = field;
                     }
                     case "3l" -> {
@@ -174,11 +213,11 @@ public abstract class Map {
                         mapMatrix[row][column] = field;
                     }
                     case "1t" -> {
-                        var field = new Field(FieldType.ROAD,  1, "R",false, row, column, 135);
+                        var field = new Field(FieldType.ROAD,  1, RIGHT,false, row, column, 135);
                         mapMatrix[row][column] = field;
                     }
                     case "3T" -> {
-                        var field = new Field(FieldType.ROAD,  3, "R",false, row, column, 45);
+                        var field = new Field(FieldType.ROAD,  3, RIGHT,false, row, column, 45);
                         mapMatrix[row][column] = field;
                     }
                     case "3t" -> {
@@ -212,12 +251,29 @@ public abstract class Map {
                         var field = new Field(FieldType.RAILROAD,  0, null,true, row, column, 315);
                         mapMatrix[row][column] = field;
                     }
-                    case "IV" -> {
-                        var field = new Field(FieldType.INTERSECTION, 0, null, true, row, column, 0);
+                    case "1V" -> {
+                        var field = new Field(FieldType.INTERSECTION, 1, RIGHT, true, row, column, 270);
+                        mapMatrix[row][column] = field;
+
+                    }
+                    case "1v" -> {
+                        var field = new Field(FieldType.INTERSECTION, 1, "L", true, row, column, 90);
                         mapMatrix[row][column] = field;
                     }
-                    case "IH" -> {
-                        var field = new Field(FieldType.INTERSECTION,  0, null,true, row, column, 90);
+                    case "2H" -> {
+                        var field = new Field(FieldType.INTERSECTION,  2, RIGHT,true, row, column, 0);
+                        mapMatrix[row][column] = field;
+                    }
+                    case "2h" -> {
+                        var field = new Field(FieldType.INTERSECTION, 2, "L", true, row, column, 180);
+                        mapMatrix[row][column] = field;
+                    }
+                    case "3V" -> {
+                        var field = new Field(FieldType.INTERSECTION, 3, RIGHT, true, row, column, 90);
+                        mapMatrix[row][column] = field;
+                    }
+                    case "3v" -> {
+                        var field = new Field(FieldType.INTERSECTION, 3, "L", true, row, column, 270);
                         mapMatrix[row][column] = field;
                     }
                     default -> {
@@ -231,6 +287,84 @@ public abstract class Map {
         for (Station station : stationList){
             station.loadStationExits();
         }
+        setRailroadCrossingList();
+    }
+
+    public static void setRoads(){
+        List<Field> rightSide1 = new ArrayList<>();
+        List<Field> leftSide1 = new ArrayList<>();
+        List<Field> rightSide2 = new ArrayList<>();
+        List<Field> leftSide2 = new ArrayList<>();
+        List<Field> rightSide3 = new ArrayList<>();
+        List<Field> leftSide3 = new ArrayList<>();
+        List<Field> fieldList = Arrays.stream(mapMatrix).flatMap(Arrays::stream)
+                .filter(field -> field.getFieldType()
+                .equals(FieldType.ROAD) || field.getFieldType().equals(FieldType.INTERSECTION))
+                .collect(Collectors.toList());
+        fieldList.forEach(field -> {
+            if(field.getRoadCode() == 1){
+                if(field.getRoadSide().equals(Map.RIGHT)){
+                    rightSide1.add(field);
+                } else {
+                    leftSide1.add(field);
+                }
+            } else if(field.getRoadCode() == 2){
+                if(field.getRoadSide().equals(Map.RIGHT)){
+                    rightSide2.add(field);
+                } else {
+                    leftSide2.add(field);
+                }
+            } else {
+                if(field.getRoadSide().equals(Map.RIGHT)){
+                    rightSide3.add(field);
+                } else {
+                    leftSide3.add(field);
+                }
+            }
+        });
+        roadSegmentList = new ArrayList<>();
+        roadSegmentList.add(new RoadSegment(1, rightSide1, leftSide1));
+        roadSegmentList.add(new RoadSegment(2, rightSide2, leftSide2));
+        roadSegmentList.add(new RoadSegment(3, rightSide3, leftSide3));
+    }
+
+    public static void setRailroadCrossingList(){
+        railroadCrossingList = new ArrayList<>();
+        List<Field> fieldList = Arrays.stream(mapMatrix).flatMap(Arrays::stream).filter(field -> field.getFieldType().equals(FieldType.INTERSECTION)).collect(Collectors.toList());
+        var crossing1 = new RailroadCrossing(1);
+        var crossing2 = new RailroadCrossing(2);
+        var crossing3 = new RailroadCrossing(3);
+        fieldList.forEach(field -> {
+            switch (field.getRoadCode()){
+                case 1 -> {
+                    if(field.getRoadSide().equals(RIGHT)) {
+                        crossing1.setRightSideField(field);
+                    }
+                    else {
+                        crossing1.setLeftSideField(field);
+                    }
+                }
+                case 2 -> {
+                    if(field.getRoadSide().equals(RIGHT)) {
+                        crossing2.setRightSideField(field);
+                    }
+                    else {
+                        crossing2.setLeftSideField(field);
+                    }
+                }
+                default -> {
+                    if(field.getRoadSide().equals(RIGHT)) {
+                        crossing3.setRightSideField(field);
+                    }
+                    else {
+                        crossing3.setLeftSideField(field);
+                    }
+                }
+            }
+        });
+        railroadCrossingList.add(crossing1);
+        railroadCrossingList.add(crossing2);
+        railroadCrossingList.add(crossing3);
     }
 
     public static Field[][] getMapMatrix(){
@@ -241,7 +375,11 @@ public abstract class Map {
         return stationList;
     }
 
-    public static List<Segment> getSegmentList() {
+    public static List<RailroadSegment> getSegmentList() {
         return segmentList;
+    }
+
+    public static List<RailroadCrossing> getRailroadCrossingList(){
+        return railroadCrossingList;
     }
 }
