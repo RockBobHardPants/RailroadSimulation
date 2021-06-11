@@ -1,7 +1,7 @@
 {
 	"label": "Second",	
 	"type": "passenger",
-	"route": "B-A",
+	"route": "B-C",
 	"speed": 50.0,
 	"front": {
 		"label": "Chochoo",
