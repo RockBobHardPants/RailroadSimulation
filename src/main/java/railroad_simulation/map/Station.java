@@ -4,14 +4,15 @@ import railroad_simulation.RailroadSimulation;
 import railroad_simulation.vehicles.rail.composition.Composition;
 
 import java.io.InputStreamReader;
+import java.io.Serializable;
 import java.util.*;
 import java.util.logging.Level;
 import java.util.stream.Collectors;
 
-public class Station{
+public class Station implements Serializable {
     private final String stationId;
     private final List<Field> stationFields;
-    private List<RailroadSegment> stationSegments;
+    private transient List<RailroadSegment> stationSegments;
     private final java.util.Map<String, String> stationExitMap;
     private final List<Field> stationExitFields;
 
@@ -47,7 +48,7 @@ public class Station{
         }
     }
 
-    public void notifyCrossing(Composition composition){
+    public synchronized void notifyCrossing(Composition composition){
         var segment = stationSegments.stream()
                 .filter(railroadSegment -> railroadSegment.hasComposition(composition)).findFirst();
         segment.ifPresent(RailroadSegment::updateCrossingState);
@@ -122,9 +123,7 @@ public class Station{
 
     @Override
     public String toString() {
-        return "Station{" +
-                "stationId='" + stationId + '\'' +
-                ", stationSegments=" + stationSegments;
+        return "Station: " + stationId;
     }
 
     public List<RailroadSegment> getStationSegments() {

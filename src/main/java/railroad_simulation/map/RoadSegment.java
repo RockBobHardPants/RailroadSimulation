@@ -29,7 +29,7 @@ public class RoadSegment {
 		} else {
 			rightSideRoad.sort(Comparator.comparingInt(field -> field.getCoordinates().getColumn()));
 			rightSideRoad.sort((field1, field2) -> Integer.compare(field2.getCoordinates().getRow(), field1.getCoordinates().getRow()));
-			leftSideRoad.sort((field1, field2) -> Integer.compare(field2.getCoordinates().getColumn(), field1.getCoordinates().column()));
+			leftSideRoad.sort((field1, field2) -> Integer.compare(field2.getCoordinates().getColumn(), field1.getCoordinates().getColumn()));
 			leftSideRoad.sort(Comparator.comparing(field -> field.getCoordinates().getRow()));
 		}
 		this.rightSideRoad = rightSideRoad;
@@ -50,7 +50,9 @@ public class RoadSegment {
 	}
 
 	public void setMaxNumberOfVehicles(int maxNumberOfVehicles) {
-		this.maxNumberOfVehicles = maxNumberOfVehicles;
+		if(maxNumberOfVehicles > this.maxNumberOfVehicles) {
+			this.maxNumberOfVehicles = maxNumberOfVehicles;
+		}
 	}
 
 	public List<Vehicle> getVehicleList() {
@@ -73,6 +75,10 @@ public class RoadSegment {
 		} else {
 			return false;
 		}
+	}
+
+	public int getId(){
+		return id;
 	}
 
 	public void setSpeedLimit(int speedLimit) {

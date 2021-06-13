@@ -6,6 +6,7 @@ import org.json.JSONObject;
 import railroad_simulation.RailroadSimulation;
 import railroad_simulation.exception.InvalidConfigurationException;
 import railroad_simulation.map.Map;
+import railroad_simulation.map.RouteHistory;
 import railroad_simulation.map.Station;
 import railroad_simulation.vehicles.rail.composition.Composition;
 import railroad_simulation.vehicles.rail.locomotive.Locomotive;
@@ -13,11 +14,13 @@ import railroad_simulation.vehicles.rail.locomotive.LocomotiveDrive;
 import railroad_simulation.vehicles.rail.locomotive.LocomotiveType;
 import railroad_simulation.vehicles.rail.wagon.*;
 
-import java.io.IOException;
+import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.logging.Level;
 
@@ -39,7 +42,36 @@ public abstract class Util {
 	public static final String POWER = "power";
 	public static final String DESCRIPTION = "description";
 
+	private static final Path PATH_TO_TRAIN_DIRECTORY = Paths.get(RailroadSimulation.TRAINS_FOLDER);
+	private static final Path PATH_TO_ROUTE_HISTORY_DIRECTORY = Paths.get(RailroadSimulation.ROUTE_HISTORY_FOLDER);
+
 	private Util(){}
+
+	public static List<RouteHistory> loadRouteHistoryList(){
+		List<RouteHistory> routeHistoryList = new ArrayList<>();
+		File[] listOfFiles = PATH_TO_ROUTE_HISTORY_DIRECTORY.toFile().listFiles();
+		if(listOfFiles != null) {
+			for (File file : listOfFiles) {
+				RouteHistory routeHistory;
+				try (var objectInputStream = new ObjectInputStream(new FileInputStream(file))){
+					routeHistory = (RouteHistory) objectInputStream.readObject();
+					routeHistoryList.add(routeHistory);
+				} catch (IOException | ClassNotFoundException fileNotFoundException) {
+					RailroadSimulation.LOGGER.log(Level.SEVERE, fileNotFoundException.getMessage(), fileNotFoundException);
+				}
+			}
+		}
+		return routeHistoryList;
+	}
+
+	public static void serializeRouteHistory(String compositionId, RouteHistory routeHistory){
+		try (var objectOutputStream = new ObjectOutputStream(
+				new FileOutputStream(PATH_TO_ROUTE_HISTORY_DIRECTORY.toFile() + File.separator + compositionId)) ){
+			objectOutputStream.writeObject(routeHistory);
+		} catch (IOException fileNotFoundException) {
+			RailroadSimulation.LOGGER.log(Level.SEVERE, fileNotFoundException.getMessage(), fileNotFoundException);
+		}
+	}
 
 	public static JSONObject getTrainJSON(Path path){
 		JSONObject train = null;
@@ -50,6 +82,19 @@ public abstract class Util {
 			System.exit(-1);
 		}
 		return train;
+	}
+
+	public static List<Composition> loadInitialCompositions() {
+		List<Composition> compositionList = new ArrayList<>();
+		for (File file : Objects.requireNonNull(PATH_TO_TRAIN_DIRECTORY.toFile().listFiles())){
+			try {
+				compositionList.add(Util.getComposition(Util.getTrainJSON(file.toPath())));
+			} catch (JSONException | InvalidConfigurationException exception){
+				var message = file.getName() + " " + exception.getMessage();
+				RailroadSimulation.CONFIG_LOGGER.log(Level.WARNING, message, exception);
+			}
+		}
+		return compositionList;
 	}
 
 	public static List<Station> buildStationList(String stationListString) throws InvalidConfigurationException {

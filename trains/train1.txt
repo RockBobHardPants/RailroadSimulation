@@ -1,19 +1,13 @@
 {
-	"label": "Balabala",	
+	"label": "First",	
 	"type": "passenger",
-	"route": "E-C-B-A",
-	"speed": 80.0,
+	"route": "A-B-C",
+	"speed": 100.0,
 	"front": {
 		"label": "Chochoo",
 		"power": 50.0,
 		"type": "passenger",
 		"drive": "diesel"
-	},
-	"rear": {
-		"label": "Chochoo2",
-		"power": 50.0,
-		"type": "passenger",
-		"drive": "electric"
 	},
 	"wagon": [
 		{
@@ -27,7 +21,7 @@
 			"label": "Chochoowagon2",
 			"length": 50.0,
 			"type": "passenger",
-			"passengerType": "bed",
+			"passengerType": "seat",
 			"number": 6
 		}
 		]

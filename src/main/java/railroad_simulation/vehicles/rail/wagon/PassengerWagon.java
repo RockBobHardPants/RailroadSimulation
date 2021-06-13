@@ -27,7 +27,7 @@ public class PassengerWagon extends Wagon{
     @Override
     protected void setWagonImage() {
         try {
-            wagonImage = new Image(new FileInputStream(Paths.get("").toAbsolutePath() + File.separator + IMAGES + File.separator + "passengerWagon.png"));
+            wagonImage = new Image(new FileInputStream(Paths.get(RailroadSimulation.IMAGES_FOLDER).toAbsolutePath() + File.separator + "passengerWagon.png"));
             wagonImageView = new ImageView(wagonImage);
         } catch (FileNotFoundException fileNotFoundException) {
             RailroadSimulation.LOGGER.log(Level.SEVERE, fileNotFoundException.getMessage(), fileNotFoundException);

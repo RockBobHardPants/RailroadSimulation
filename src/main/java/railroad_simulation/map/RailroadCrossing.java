@@ -32,7 +32,7 @@ public class RailroadCrossing {
 		return safeToCross;
 	}
 
-	public void setSafeToCross(boolean safeToCross) {
+	public synchronized void setSafeToCross(boolean safeToCross) {
 		rightSideField.setElectricity(!safeToCross);
 		leftSideField.setElectricity(!safeToCross);
 		this.safeToCross = safeToCross;

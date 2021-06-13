@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<?import javafx.scene.control.Button?>
+<?import javafx.scene.control.Label?>
+<?import javafx.scene.control.SplitPane?>
+<?import javafx.scene.control.TableColumn?>
+<?import javafx.scene.control.TableView?>
+<?import javafx.scene.control.cell.PropertyValueFactory?>
+<?import javafx.scene.layout.AnchorPane?>
+<?import javafx.scene.text.Font?>
+
+<AnchorPane fx:id="routesAnchor" maxHeight="-Infinity" maxWidth="-Infinity" minHeight="-Infinity" minWidth="-Infinity" prefHeight="500.0" prefWidth="700.0" stylesheets="style.css" xmlns="http://javafx.com/javafx/16" xmlns:fx="http://javafx.com/fxml/1" fx:controller="railroad_simulation.controllers.RouteHistoryController">
+   <children>
+      <SplitPane fx:id="splitPane" dividerPositions="0.29797979797979796" minWidth="625.0" prefHeight="450.0" prefWidth="625.0" styleClass="split-pane-divider" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+        <items>
+          <AnchorPane fx:id="tableAnchor" maxWidth="400.0" minHeight="400.0" minWidth="205.0" prefHeight="450.0" prefWidth="205.0">
+               <children>
+                  <TableView id="table" fx:id="compositionTableView" layoutY="-1.0" maxWidth="400.0" minHeight="400.0" minWidth="205.0" prefHeight="400.0" prefWidth="205.0" AnchorPane.bottomAnchor="0.0" AnchorPane.leftAnchor="0.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="0.0">
+                    <columns>
+                      <TableColumn id="compositionListTable" editable="false" maxWidth="400.0" minWidth="200.0" prefWidth="200.0" resizable="false" text="Compositions">
+                          <cellValueFactory>
+                              <PropertyValueFactory property="label" />
+                          </cellValueFactory>
+                      </TableColumn>
+                    </columns>
+                  </TableView>
+               </children>
+            </AnchorPane>
+          <AnchorPane fx:id="resultAnchor" minHeight="420.0" minWidth="420.0" prefHeight="450.0" prefWidth="420.0">
+               <children>
+                  <Label fx:id="compositionIdLabel" alignment="CENTER" contentDisplay="CENTER" layoutX="14.0" layoutY="14.0" minHeight="30.0" prefHeight="30.0" prefWidth="362.0" AnchorPane.leftAnchor="20.0" AnchorPane.rightAnchor="20.0" AnchorPane.topAnchor="10.0">
+                     <font>
+                        <Font size="16.0" />
+                     </font>
+                  </Label>
+                  <Button fx:id="closeButton" layoutX="351.0" layoutY="361.0" minHeight="50.0" minWidth="60.0" mnemonicParsing="false" prefHeight="50.0" prefWidth="100.0" text="Close" AnchorPane.bottomAnchor="10.0" AnchorPane.rightAnchor="10.0" />
+                  <TableView fx:id="fieldHistoryTable" layoutX="14.0" layoutY="80.0" maxHeight="330.0" maxWidth="320.0" minHeight="330.0" minWidth="320.0" prefHeight="330.0" prefWidth="320.0" AnchorPane.leftAnchor="0.0" AnchorPane.topAnchor="90.0">
+                    <columns>
+                        <TableColumn fx:id="rowCoordinateColumn" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" resizable="false" text="Row">
+                            <cellValueFactory>
+                            </cellValueFactory>
+                        </TableColumn>
+                        <TableColumn fx:id="columnCoordinateColumn" maxWidth="100.0" minWidth="100.0" prefWidth="100.0" resizable="false" text="Column">
+                            <cellValueFactory>
+                            </cellValueFactory>
+                        </TableColumn>
+                        <TableColumn maxWidth="100.0" minWidth="100.0" prefWidth="100.0" resizable="false" text="Type">
+                            <cellValueFactory>
+                                <PropertyValueFactory property="fieldType" />
+                            </cellValueFactory>
+                        </TableColumn>
+                    </columns>
+                  </TableView>
+                  <TableView fx:id="stationHistoryTable" layoutX="382.0" layoutY="90.0" maxHeight="330.0" maxWidth="160.0" minHeight="330.0" minWidth="160.0" prefHeight="330.0" prefWidth="160.0" AnchorPane.rightAnchor="0.0" AnchorPane.topAnchor="90.0">
+                    <columns>
+                        <TableColumn maxWidth="150.0" minWidth="150.0" prefWidth="150.0" resizable="false" text="Visited Stations">
+                            <cellValueFactory>
+                                <PropertyValueFactory property="stationId" />
+                            </cellValueFactory>
+                        </TableColumn>
+                    </columns>
+                  </TableView>
+                  <Label alignment="CENTER" layoutX="20.0" layoutY="52.0" prefHeight="30.0" prefWidth="162.0" text="Time spent on route" AnchorPane.leftAnchor="20.0" AnchorPane.topAnchor="50.0">
+                     <font>
+                        <Font size="16.0" />
+                     </font>
+                  </Label>
+                  <Label fx:id="timeInSecondsLabel" alignment="CENTER" layoutX="234.0" layoutY="59.0" minHeight="30.0" prefHeight="30.0" prefWidth="162.0" textAlignment="CENTER" AnchorPane.rightAnchor="20.0" AnchorPane.topAnchor="50.0">
+                     <font>
+                        <Font size="16.0" />
+                     </font>
+                  </Label>
+               </children>
+            </AnchorPane>
+        </items>
+      </SplitPane>
+   </children>
+</AnchorPane>

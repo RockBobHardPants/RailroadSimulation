@@ -1,32 +1,36 @@
 package railroad_simulation.map;
 
-import railroad_simulation.RailroadSimulation;
-import railroad_simulation.controllers.MainController;
+import javafx.beans.property.IntegerProperty;
+import javafx.beans.property.ObjectProperty;
+import javafx.beans.property.SimpleIntegerProperty;
+import javafx.beans.property.SimpleObjectProperty;
 import javafx.scene.image.Image;
 import javafx.scene.image.ImageView;
+import railroad_simulation.RailroadSimulation;
 import railroad_simulation.vehicles.road.Vehicle;
 
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
+import java.io.Serializable;
 import java.nio.file.Paths;
 import java.util.Objects;
 import java.util.Random;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
-public class Field {
+public class Field implements Serializable {
     public static final String IMAGES = "images";
     public static final int TURN_PRE_ROTATION = -45;
-    private Image fieldImage;
-    private ImageView fieldImageView;
+    private transient Image fieldImage;
+    private transient ImageView fieldImageView;
     private final FieldType fieldType;
     private boolean electricity;
     private final Coordinates coordinates;
     private final int fieldRotation;
     private int roadCode;
     private String roadSide;
-    private Vehicle vehicleOnField;
+    private transient Vehicle vehicleOnField;
+    private final transient ObjectProperty<Coordinates> coordinatesProperty = new SimpleObjectProperty<>();
 
     public Field(FieldType fieldType,int roadCode, String roadSide, boolean hasElectricity, int row, int column, int fieldRotation){
         this.fieldType = fieldType;
@@ -36,6 +40,7 @@ public class Field {
         this.fieldRotation = fieldRotation;
         this.vehicleOnField = null;
         coordinates = new Coordinates(row, column);
+        this.coordinatesProperty.set(coordinates);
         setFieldImage();
     }
     //ImageView za skretanje je inicijalno rotiran za -45
@@ -192,12 +197,40 @@ public class Field {
         this.vehicleOnField = null;
     }
 
-    public record Coordinates(int row, int column) {
+    public class Coordinates implements Serializable{
+        private final int row;
+        private final int column;
+        private transient IntegerProperty propertyRow;
+        private transient IntegerProperty propertyColumn;
+
+        public Coordinates(int row, int column){
+            this.row = row;
+            this.column = column;
+            this.propertyRow  = new SimpleIntegerProperty();
+            this.propertyColumn = new SimpleIntegerProperty();
+            this.propertyRow.set(row);
+            this.propertyColumn.set(column);
+        }
         public int getRow() {
             return row;
         }
         public int getColumn() {
             return column;
+        }
+
+        public IntegerProperty getPropertyRow(){
+            if (propertyRow == null) {
+                propertyRow = new SimpleIntegerProperty();
+                propertyRow.setValue(row);
+            }
+            return propertyRow;
+        }
+        public IntegerProperty getPropertyColumn(){
+            if (propertyColumn == null) {
+                propertyColumn = new SimpleIntegerProperty();
+                propertyColumn.setValue(column);
+            }
+            return propertyColumn;
         }
 
         @Override
@@ -208,6 +241,8 @@ public class Field {
                     ']';
         }
     }
+
+    public ObjectProperty<Coordinates> getCoordinatesProperty(){return coordinatesProperty;}
 
     public Field getFieldByCoordinates(int row, int column){
         if(coordinates.getRow() == row && coordinates.getColumn() == column){

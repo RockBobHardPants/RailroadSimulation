@@ -5,12 +5,12 @@ import javafx.fxml.FXMLLoader;
 import javafx.scene.Parent;
 import javafx.scene.Scene;
 import javafx.stage.Stage;
+import javafx.stage.StageStyle;
 
 import java.io.IOException;
 import java.util.logging.Level;
 
 public class UILoader extends Application {
-
     public static final String MAIN_WINDOW_FXML = "../main_window.fxml";
 
     @Override
@@ -21,6 +21,7 @@ public class UILoader extends Application {
             assert mainWindowURL != null;
             root = FXMLLoader.load(mainWindowURL);
             stage.setScene(new Scene(root));
+            stage.initStyle(StageStyle.UNDECORATED);
             stage.show();
         } catch (IOException ioException){
             RailroadSimulation.LOGGER.log(Level.SEVERE, ioException.getMessage(), ioException);

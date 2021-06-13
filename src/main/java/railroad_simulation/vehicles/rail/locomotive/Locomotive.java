@@ -71,6 +71,10 @@ public class Locomotive {
         return locomotiveType;
     }
 
+    public LocomotiveDrive getLocomotiveDrive() {
+        return locomotiveDrive;
+    }
+
     public Double getPower() {
         return power;
     }

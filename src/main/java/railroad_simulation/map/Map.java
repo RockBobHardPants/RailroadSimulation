@@ -21,6 +21,8 @@ public abstract class Map {
     public static final String SEGMENTS_TXT = "segments.txt";
     public static final String RIGHT = "R";
     public static final String  LEFT = "L";
+    public static final String MAP_TXT = "map.txt";
+    public static final String INVALID_MAP_CONFIGURATION = "Invalid map configuration";
     private static Field[][] mapMatrix;
     private static List<Station> stationList;
     private static List<RailroadSegment> railroadSegmentList;
@@ -101,7 +103,7 @@ public abstract class Map {
 
     public static void readSegments(){
         List<RailroadSegment> segmentList = new ArrayList<>();
-        try (var bufferedReader = new BufferedReader(new FileReader(Paths.get("").toAbsolutePath()
+        try (var bufferedReader = new BufferedReader(new FileReader(Paths.get(RailroadSimulation.MAP_FOLDER).toAbsolutePath()
                                                                     + File.separator + SEGMENTS_TXT))) {
             String line;
             while ((line = bufferedReader.readLine()) != null) {
@@ -134,7 +136,7 @@ public abstract class Map {
     private static List<String> readMap(){
         List<String> map = new ArrayList<>();
         String line;
-        var mapFile = new File(Paths.get("").toAbsolutePath() + File.separator + "map.txt");
+        var mapFile = new File(Paths.get(RailroadSimulation.MAP_FOLDER).toAbsolutePath() + File.separator + MAP_TXT);
         try (var bufferedReader = new BufferedReader(new FileReader(mapFile))){
             while ((line = bufferedReader.readLine()) != null) {
                 List<String> matches = Pattern.compile("[a-zA-Z0-9]{2}").matcher(line).results().map(MatchResult::group).collect(Collectors.toList());
@@ -286,7 +288,7 @@ public abstract class Map {
                             var field = new Field(FieldType.NONE, 0, null, false, row, column, 0);
                             mapMatrix[row][column] = field;
                         }
-                        default -> throw new InvalidConfigurationException("Invalid map configuration");
+                        default -> throw new InvalidConfigurationException(INVALID_MAP_CONFIGURATION);
                     }
                     counter++;
                 }
@@ -341,7 +343,8 @@ public abstract class Map {
 
     public static void setRailroadCrossingList(){
         railroadCrossingList = new ArrayList<>();
-        List<Field> fieldList = Arrays.stream(mapMatrix).flatMap(Arrays::stream).filter(field -> field.getFieldType().equals(FieldType.INTERSECTION)).collect(Collectors.toList());
+        List<Field> fieldList = Arrays.stream(mapMatrix).flatMap(Arrays::stream)
+                .filter(field -> field.getFieldType().equals(FieldType.INTERSECTION)).collect(Collectors.toList());
         var crossing1 = new RailroadCrossing(1);
         var crossing2 = new RailroadCrossing(2);
         var crossing3 = new RailroadCrossing(3);

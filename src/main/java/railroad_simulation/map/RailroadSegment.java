@@ -47,18 +47,24 @@ public class RailroadSegment {
         return compositionsOnSegment;
     }
 
-    public void addCompositionOnSegment(Composition composition){
-        compositionsOnSegment.add(composition);
+    public synchronized void addCompositionOnSegment(Composition composition){
+        if(!compositionsOnSegment.contains(composition)) {
+            compositionsOnSegment.add(composition);
+        }
         if(railroadCrossing != null){
             railroadCrossing.setSafeToCross(false);
         }
     }
 
-    public void removeCompositionFromSegment(Composition composition){
+    public synchronized void removeCompositionFromSegment(Composition composition){
         compositionsOnSegment.remove(composition);
         if(railroadCrossing != null && compositionsOnSegment.isEmpty()){
             railroadCrossing.setSafeToCross(true);
         }
+    }
+
+    public void clearCompositionList(){
+        compositionsOnSegment.clear();
     }
 
     public boolean hasComposition(){

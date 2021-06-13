@@ -2,7 +2,9 @@ package railroad_simulation.vehicles.rail.composition;
 
 import railroad_simulation.RailroadSimulation;
 import railroad_simulation.map.*;
+import railroad_simulation.util.Util;
 import railroad_simulation.vehicles.rail.locomotive.Locomotive;
+import railroad_simulation.vehicles.rail.locomotive.LocomotiveDrive;
 import railroad_simulation.vehicles.rail.wagon.Wagon;
 
 import java.util.List;
@@ -34,6 +36,9 @@ public class Composition extends Thread {
     private boolean waiting;
     private boolean passedCrossing;
     private int waitingTime;
+    private int crossingFieldsPassed = 0;
+    private final RouteHistory routeHistory;
+    boolean movedOnce;
 
     public Composition(String label, Locomotive frontLocomotive, Locomotive rearLocomotive, List<Wagon> wagonList,
                        List<Station> stationList, int movementSpeed) {
@@ -49,6 +54,8 @@ public class Composition extends Thread {
         this.stationList = stationList;
         this.stationList.remove(0);
         this.stationList.remove(stationList.size() - 1);
+        this.routeHistory = new RouteHistory(this.label);
+        movedOnce = false;
         departed = false;
         waitingTime = 0;
         var tempLength = 1;
@@ -96,22 +103,29 @@ public class Composition extends Thread {
     public void move(){
         var tempField = currentField;
         nextField = Map.getNextFieldTrain(currentField, previousField);
-        currentField = nextField;
-        previousField = tempField;
-        setFieldsForItems();
+        if(frontLocomotive.getLocomotiveDrive().equals(LocomotiveDrive.ELECTRIC)){
+            if(nextField != null && nextField.getElectricity()){
+                if(lastCompositionItemField == null || lastCompositionItemField.getElectricity()){
+                    currentField = nextField;
+                    previousField = tempField;
+                    setFieldsForItems();
+                    routeHistory.addField(currentField);
+                }
+            }
+        } else {
+            currentField = nextField;
+            previousField = tempField;
+            setFieldsForItems();
+            routeHistory.addField(currentField);
+        }
     }
 
-    int crossingFieldsPassed = 0;
+
     private void checkIfCrossingPassed() {
         var crossing = Map.getRailroadCrossingList().stream()
                 .filter(railroadCrossing -> railroadCrossing.checkCrossingFields(lastCompositionItemField)).findFirst();
         if(crossing.isPresent() && crossing.get().checkCrossingFields(lastCompositionItemField)){
             crossingFieldsPassed++;
-            if(crossingFieldsPassed == 2) {
-                passedCrossing = true;
-                currentStation.notifyCrossing(this);
-                crossingFieldsPassed = 0;
-            }
         }
     }
 
@@ -168,17 +182,17 @@ public class Composition extends Thread {
             try {
             if(!departed && checkIfDepartureStationField()){                                                            //Ako je na pocetnoj stanici i ako je trenutno polje tipa STATION
                 if(departureStation.safeToGo(this)) {
+                    routeHistory.addStations(departureStation);
                     if(waitingTime == 0) {
-                        setCurrentField(departureStation.trainDirection(destinationStation));                           //Postavi izlazno polje koje ide prema destination kao trenutno
-                        waiting = false;
-                        departed = true;
+                        sleepAtStationExit(departureStation);
                     } else {
+                        routeHistory.addTime(waitingTime);
                         sleep(waitingTime);
-                        setCurrentField(departureStation.trainDirection(destinationStation));
-                        waiting = false;
-                        departed = true;
+                        sleepAtStationExit(departureStation);
                         waitingTime = 0;
                     }
+                    waiting = false;
+                    departed = true;
                 } else {
                     waiting = true;
                 }
@@ -199,6 +213,7 @@ public class Composition extends Thread {
                 }
             }
             if(!stationExit && checkStationField()){
+                routeHistory.addStations(currentStation);
                 if(everythingInStation && readyToGo) {
                     currentStation.removeCompositionFromSegment(this);
                     if(currentStation.equals(destinationStation)){
@@ -206,22 +221,19 @@ public class Composition extends Thread {
                     }
                     if(currentStation.safeToGo(this)) {
                         if(waitingTime == 0) {
-                            setCurrentField(currentStation.trainDirection(destinationStation));
-                            stationList.remove(currentStation);
-                            readyToGo = false;
-                            everythingInStation = false;
-                            waiting = false;
-                            passedCrossing = false;
+                            sleepAtStationExit(currentStation);
                         } else {
-                            passedCrossing = false;
+                            routeHistory.addTime(waitingTime);
                             sleep(waitingTime);
-                            setCurrentField(currentStation.trainDirection(destinationStation));
-                            stationList.remove(currentStation);
-                            readyToGo = false;
-                            everythingInStation = false;
-                            waiting = false;
+                            sleepAtStationExit(currentStation);
+                            currentStation.safeToGo(this);
                             waitingTime = 0;
                         }
+                        stationList.remove(currentStation);
+                        readyToGo = false;
+                        everythingInStation = false;
+                        waiting = false;
+                        passedCrossing = false;
                     } else {
                         waiting = true;
                     }
@@ -229,20 +241,32 @@ public class Composition extends Thread {
             }
             if(!stationExit && !everythingInStation && departed) {
                 move();
+                if(crossingFieldsPassed == 2 && movedOnce){
+                    passedCrossing = true;
+                    crossingFieldsPassed = 0;
+                    currentStation.notifyCrossing(this);
+                    movedOnce = false;
+                } else if (crossingFieldsPassed == 2){
+                    movedOnce = true;
+                }
             }
             if(!waiting) {
                 updated = true;
             }
                 if(waiting){
+                    routeHistory.addTime(200);
                     sleep(200);
                 }
                 if(!stationExit && everythingInStation && !waiting){
+                    routeHistory.addTime(3000);
                     sleep(3000);
                     readyToGo = true;
                 } else {
                     if(temporaryMovementSpeed != 0){
+                        routeHistory.addTime(10_000 / temporaryMovementSpeed);
                         sleep(10_000 / temporaryMovementSpeed);
                     } else {
+                        routeHistory.addTime(10_000 / movementSpeed);
                         sleep(10_000 / movementSpeed);
                     }
                 }
@@ -251,6 +275,20 @@ public class Composition extends Thread {
                 RailroadSimulation.LOGGER.log(Level.SEVERE, exception.getMessage(), exception);
             }
             updated = false;
+        }
+        Util.serializeRouteHistory(label, routeHistory);
+    }
+
+    private void sleepAtStationExit(Station currentStation) throws InterruptedException {
+        setCurrentField(currentStation.trainDirection(destinationStation));
+        routeHistory.addField(currentField);
+        updated = true;
+        if(temporaryMovementSpeed != 0){
+            routeHistory.addTime(10_000 / temporaryMovementSpeed);
+            sleep(10_000 / temporaryMovementSpeed);
+        } else {
+            routeHistory.addTime(10_000 / movementSpeed);
+            sleep(10_000 / movementSpeed);
         }
     }
 
@@ -331,6 +369,10 @@ public class Composition extends Thread {
 
     public boolean isPassedCrossing() {
         return passedCrossing;
+    }
+
+    public RouteHistory getRouteHistory() {
+        return routeHistory;
     }
 
     @Override

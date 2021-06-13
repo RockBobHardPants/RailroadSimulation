@@ -1,27 +1,27 @@
 {
-	"label": "Second",	
+	"label": "Fifth",	
 	"type": "passenger",
-	"route": "B-C",
-	"speed": 50.0,
+	"route": "A-B-C-D",
+	"speed": 70.0,
 	"front": {
 		"label": "Chochoo",
 		"power": 50.0,
 		"type": "passenger",
-		"drive": "diesel"
+		"drive": "steam"
 	},
 	"rear": {
 		"label": "Chochoo2",
 		"power": 50.0,
 		"type": "passenger",
-		"drive": "electric"
+		"drive": "diesel"
 	},
 	"wagon": [
 		{
 			"label": "Chochoowagon",
 			"length": 50.0,
 			"type": "passenger",
-			"passengerType": "bed",
-			"number": 6
+			"passengerType": "restaurant",
+			"description": "nije agape"
 		},
 		{
 			"label": "Chochoowagon2",
